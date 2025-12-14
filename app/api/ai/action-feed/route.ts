@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAIActionFeed } from '@/lib/ai/assistantService'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 /**
  * GET /api/ai/action-feed?userId=xxx
  * Get AI-powered action suggestions for dashboard

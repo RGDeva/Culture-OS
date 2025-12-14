@@ -18,29 +18,27 @@ declare global {
   }
 }
 
-// Initialize debug logging in development
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  window.debugLog = (message: string, data?: any) => {
-    const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${message}`;
-    console.log(logMessage, data || '');
-    
-    try {
-      const logs = JSON.parse(localStorage.getItem('login-debug-logs') || '[]');
-      logs.push({ 
-        timestamp, 
-        message, 
-        data: data ? JSON.stringify(data, null, 2) : null 
-      });
-      localStorage.setItem('login-debug-logs', JSON.stringify(logs.slice(-50)));
-    } catch (e) {
-      console.error('Failed to store debug log:', e);
-    }
-  };
-} else {
-  // No-op in production
-  window.debugLog = () => {};
-}
+// Safe debug logging function for SSR
+const debugLog = (message: string, data?: any) => {
+  if (typeof window === 'undefined') return;
+  if (process.env.NODE_ENV !== 'development') return;
+  
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}`;
+  console.log(logMessage, data || '');
+  
+  try {
+    const logs = JSON.parse(localStorage.getItem('login-debug-logs') || '[]');
+    logs.push({ 
+      timestamp, 
+      message, 
+      data: data ? JSON.stringify(data, null, 2) : null 
+    });
+    localStorage.setItem('login-debug-logs', JSON.stringify(logs.slice(-50)));
+  } catch (e) {
+    console.error('Failed to store debug log:', e);
+  }
+};
 
 export default function LoginPage() {
   const { ready, authenticated, user, getAccessToken, login, logout } = usePrivy();
@@ -64,7 +62,7 @@ export default function LoginPage() {
     };
     
     setDebugInfo(prev => [...prev.slice(-9), newEntry]);
-    window.debugLog(`[LoginPage] ${message}`, data);
+    debugLog(`[LoginPage] ${message}`, data);
   }, []);
 
   // Handle wallet connection and authentication
