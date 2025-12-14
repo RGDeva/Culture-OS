@@ -271,16 +271,9 @@ NEXTAUTH_URL="http://localhost:3001"`}
             },
             embeddedWallets: {
               createOnLogin: 'users-without-wallets',
-              noPromptOnSignature: true,
             },
             defaultChain: base,
             supportedChains: [base],
-            // Disable external wallet connectors to prevent the error
-            externalWallets: {
-              coinbaseWallet: {
-                connectionOptions: 'eoaOnly',
-              },
-            },
           }}
         >
           <AuthProvider>
