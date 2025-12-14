@@ -270,10 +270,8 @@ NEXTAUTH_URL="http://localhost:3001"`}
               logo: '/logo.png',
             },
             embeddedWallets: {
-              createOnLogin: 'users-without-wallets',
+              createOnLogin: 'off',
             },
-            defaultChain: base,
-            supportedChains: [base],
           }}
         >
           <AuthProvider>
