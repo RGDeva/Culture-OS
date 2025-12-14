@@ -1,0 +1,464 @@
+// Extended Prisma Schema for NoCulture OS
+// Includes: Vault, Stem Separation, Distribution, Marketplace, Bookings, AI Analysis
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// EXISTING USER & WORK MODELS
+// ============================================================================
+
+model User {
+  id              String   @id
+  email           String?  @unique
+  walletAddress   String?  @unique
+  displayName     String
+  bio             String?
+  socials         String?  @default("{}")
+  artistAccountId String?  @unique
+  classification  String?
+  onboarded       Boolean  @default(false)
+  
+  // Extended marketplace fields
+  handle          String?  @unique
+  roles           String?  @default("[]")  // JSON array: ["producer", "engineer"]
+  location        String?
+  latitude        Float?
+  longitude       Float?
+  hourlyRate      Float?
+  dayRate         Float?
+  servicesOffered String?  @default("[]")  // JSON array
+  rating          Float?   @default(0)
+  reviewCount     Int      @default(0)
+  verified        Boolean  @default(false)
+  portfolioAssets String?  @default("[]")  // JSON array of asset IDs
+  connectedPlatforms String? @default("{}")  // JSON object
+  availabilityCalendar String? @default("{}")  // JSON object
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  works                Work[]
+  splitParties         SplitParty[]
+  balances             Balance[]
+  advanceAgreements    AdvanceAgreement[]
+  payoutPreference     PayoutPreference?
+  assets               Asset[]
+  projects             Project[]
+  bookingsAsClient     Booking[] @relation("ClientBookings")
+  bookingsAsProvider   Booking[] @relation("ProviderBookings")
+  reviews              Review[]
+  
+  @@index([email])
+  @@index([walletAddress])
+  @@index([handle])
+}
+
+enum WorkStatus {
+  IDEA
+  IN_PROGRESS
+  RELEASED
+  CATALOGED
+}
+
+model Work {
+  id              String        @id @default(cuid())
+  title           String
+  status          WorkStatus    @default(IDEA)
+  ownerId         String
+  owner           User          @relation(fields: [ownerId], references: [id])
+  vaultAssetIds   String        @default("[]")
+  isrc            String?       @unique
+  iswc            String?
+  releaseDate     DateTime?
+  label           String?
+  distributor     String?
+  spotifyUrl      String?
+  appleMusicUrl   String?
+  splitSheet      SplitSheet?
+  earnings        Earning[]
+  advanceWorks    AdvanceWork[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([ownerId])
+}
+
+model SplitSheet {
+  id        String        @id @default(cuid())
+  workId    String        @unique
+  work      Work          @relation(fields: [workId], references: [id])
+  parties   SplitParty[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model SplitParty {
+  id           String      @id @default(cuid())
+  splitSheetId String
+  splitSheet   SplitSheet  @relation(fields: [splitSheetId], references: [id])
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  shares       SplitShare[]
+  createdAt    DateTime    @default(now())
+  
+  @@index([splitSheetId])
+  @@index([userId])
+}
+
+model SplitShare {
+  id           String      @id @default(cuid())
+  partyId      String
+  party        SplitParty  @relation(fields: [partyId], references: [id])
+  earningType  EarningType
+  percentage   Float
+  
+  @@index([partyId])
+}
+
+enum EarningType {
+  MASTER
+  PUBLISHING
+}
+
+model Earning {
+  id          String      @id @default(cuid())
+  workId      String
+  work        Work        @relation(fields: [workId], references: [id])
+  earningType EarningType
+  amount      Float
+  currency    String      @default("USD")
+  source      String
+  period      String
+  receivedAt  DateTime
+  createdAt   DateTime    @default(now())
+  
+  @@index([workId])
+}
+
+model Balance {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float
+  currency  String   @default("USD")
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, currency])
+}
+
+model AdvanceAgreement {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  amount        Float
+  currency      String         @default("USD")
+  status        AdvanceStatus  @default(ACTIVE)
+  recoupedAmount Float         @default(0)
+  works         AdvanceWork[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  @@index([userId])
+}
+
+enum AdvanceStatus {
+  ACTIVE
+  RECOUPED
+  CANCELLED
+}
+
+model AdvanceWork {
+  id          String           @id @default(cuid())
+  advanceId   String
+  advance     AdvanceAgreement @relation(fields: [advanceId], references: [id])
+  workId      String
+  work        Work             @relation(fields: [workId], references: [id])
+  
+  @@unique([advanceId, workId])
+}
+
+model PayoutPreference {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  user      User           @relation(fields: [userId], references: [id])
+  method    PayoutMethod   @default(BANK)
+  cadence   PayoutCadence  @default(MONTHLY)
+  bankInfo  String?
+  walletAddress String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+enum PayoutMethod {
+  BANK
+  WALLET
+  BOTH
+}
+
+enum PayoutCadence {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+// ============================================================================
+// VAULT & ASSETS
+// ============================================================================
+
+model Project {
+  id            String   @id @default(cuid())
+  ownerId       String
+  owner         User     @relation(fields: [ownerId], references: [id])
+  title         String
+  description   String?
+  status        String   @default("DRAFT")  // DRAFT, IN_PROGRESS, READY_FOR_RELEASE
+  needs         String?  @default("[]")  // JSON array: ["mixing", "mastering"]
+  collaborators String?  @default("[]")  // JSON array of user IDs
+  splits        String?  @default("[]")  // JSON array of split objects
+  rightsType    String?  // exclusive, non-exclusive, lease
+  trackCopiesLimit Int?
+  metadata      String?  @default("{}")  // JSON object
+  assets        Asset[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([ownerId])
+}
+
+model Asset {
+  id                String   @id @default(cuid())
+  ownerId           String
+  owner             User     @relation(fields: [ownerId], references: [id])
+  projectId         String?
+  project           Project? @relation(fields: [projectId], references: [id])
+  
+  title             String
+  url               String
+  type              String   // loop, beat, track, kit, stem, video
+  status            String   @default("draft")  // needs_mix, needs_master, final
+  
+  // Metadata
+  duration          Float?
+  bpm               Float?
+  key               String?
+  genre             String?
+  mood              String?
+  tags              String?  @default("[]")  // JSON array
+  
+  // Sales
+  forSale           Boolean  @default(false)
+  price             Float?
+  licenseType       String?
+  distributionLinks String?  @default("{}")  // JSON object
+  earnings          Float?   @default(0)
+  
+  // Analysis
+  analysisMetadata  String?  @default("{}")  // JSON object
+  
+  // Relations
+  analyses          AssetAnalysis[]
+  stemSeparations   StemSeparation[]
+  distributions     Distribution[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([ownerId])
+  @@index([projectId])
+}
+
+// ============================================================================
+// AI ANALYSIS
+// ============================================================================
+
+model AssetAnalysis {
+  id          String   @id @default(cuid())
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id])
+  status      String   @default("PENDING")  // PENDING, PROCESSING, COMPLETE, FAILED
+  
+  // Basic audio features
+  tempo       Float?
+  key         String?
+  energy      Float?
+  danceability Float?
+  valence     Float?
+  
+  // Advanced features
+  genre       String?
+  subgenre    String?
+  mood        String?
+  instruments String?  @default("[]")  // JSON array
+  
+  // Quality scores
+  qualityScore Float?
+  viralityScore Float?
+  mixQuality   Float?
+  
+  // Recommendations
+  recommendations String? @default("[]")  // JSON array
+  
+  error       String?
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  @@index([assetId])
+}
+
+// ============================================================================
+// STEM SEPARATION
+// ============================================================================
+
+model StemSeparation {
+  id          String   @id @default(cuid())
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id])
+  status      String   @default("PENDING")  // PENDING, PROCESSING, COMPLETED, FAILED
+  model       String   @default("htdemucs")
+  progress    Int      @default(0)
+  error       String?
+  stems       Stem[]
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  @@index([assetId])
+}
+
+model Stem {
+  id            String         @id @default(cuid())
+  separationId  String
+  separation    StemSeparation @relation(fields: [separationId], references: [id])
+  assetId       String
+  type          String         // VOCALS, DRUMS, BASS, OTHER
+  url           String
+  duration      Float
+  sampleRate    Int
+  energy        Float
+  createdAt     DateTime       @default(now())
+  
+  @@index([separationId])
+  @@index([assetId])
+}
+
+// ============================================================================
+// DSP DISTRIBUTION
+// ============================================================================
+
+model Distribution {
+  id               String   @id @default(cuid())
+  assetId          String
+  externalId       String?  // epsilon.fm release ID
+  status           String   @default("pending")  // pending, processing, live, failed, taken_down
+  metadata         String   @default("{}")  // JSON object
+  splits           String   @default("[]")  // JSON array
+  platforms        String   @default("[]")  // JSON array
+  isrc             String?
+  upc              String?
+  platformStatuses String?  @default("{}")  // JSON object
+  error            String?
+  takedownReason   String?
+  takedownAt       DateTime?
+  proRegistration  String?  @default("{}")  // JSON object
+  mlcRegistration  String?  @default("{}")  // JSON object
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([assetId])
+  @@index([externalId])
+}
+
+// ============================================================================
+// MARKETPLACE & BOOKINGS
+// ============================================================================
+
+model Booking {
+  id              String   @id @default(cuid())
+  clientId        String
+  client          User     @relation("ClientBookings", fields: [clientId], references: [id])
+  providerId      String
+  provider        User     @relation("ProviderBookings", fields: [providerId], references: [id])
+  
+  serviceType     String   // PRODUCTION, MIXING, MASTERING, etc.
+  location        String?
+  scheduledTime   DateTime
+  durationHours   Int
+  rate            Float
+  totalPrice      Float
+  
+  status          String   @default("PENDING")  // PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+  paymentLink     String?
+  escrowStatus    String?  @default("NONE")  // NONE, HELD, RELEASED
+  splits          String?  @default("[]")  // JSON array
+  
+  notes           String?
+  review          Review?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([clientId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  reviewerId  String
+  reviewer    User     @relation(fields: [reviewerId], references: [id])
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+  
+  @@index([reviewerId])
+}
+
+// ============================================================================
+// PLATFORM INTEGRATIONS
+// ============================================================================
+
+model PlatformIntegration {
+  id          String   @id @default(cuid())
+  platform    String   // dreamster, takerecord, wavewarz
+  assetId     String?
+  projectId   String?
+  bookingId   String?
+  externalId  String   // External platform ID
+  url         String
+  status      String   @default("active")  // active, ended, won, lost, funded
+  metadata    String   @default("{}")  // JSON object
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([platform])
+  @@index([assetId])
+  @@index([projectId])
+  @@index([bookingId])
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // BOOKING_REQUEST, BOOKING_CONFIRMED, PAYMENT_RECEIVED, etc.
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([read])
+}

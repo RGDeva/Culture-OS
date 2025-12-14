@@ -1,0 +1,275 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id
+  email           String?  @unique
+  walletAddress   String?  @unique
+  displayName     String
+  bio             String?
+  socials         String?  @default("{}")  // Stored as JSON string
+  artistAccountId String?  @unique
+  classification  String?  // e.g., 'producer', 'engineer', 'studio', etc.
+  onboarded       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Publishing & Earnings relations
+  works                Work[]
+  splitParties         SplitParty[]
+  balances             Balance[]
+  advanceAgreements    AdvanceAgreement[]
+  payoutPreference     PayoutPreference?
+  
+  @@index([email], name: "user_email_idx")
+  @@index([walletAddress], name: "user_wallet_address_idx")
+  @@index([artistAccountId], name: "user_artist_account_id_idx")
+}
+
+// Publishing & Earnings models
+model Work {
+  id              String        @id @default(cuid())
+  title           String
+  status          String        @default("IDEA")
+
+  ownerId         String
+  owner           User          @relation(fields: [ownerId], references: [id])
+
+  // Link down to Vault assets (we already have VaultAsset)
+  vaultAssetIds   String        @default("[]")  // JSON array of VaultAsset ids
+
+  isrc            String?       @unique
+  iswc            String?
+  releaseDate     DateTime?
+  label           String?
+  distributor     String?
+  spotifyUrl      String?
+  appleMusicUrl   String?
+
+  splitSheet      SplitSheet?
+  earnings        Earning[]
+  advanceWorks    AdvanceWork[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([ownerId])
+}
+
+model SplitSheet {
+  id        String        @id @default(cuid())
+  workId    String        @unique
+  work      Work          @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  parties   SplitParty[]
+  shares    SplitShare[]
+
+  locked    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model SplitParty {
+  id               String       @id @default(cuid())
+  splitSheetId     String
+  splitSheet       SplitSheet   @relation(fields: [splitSheetId], references: [id], onDelete: Cascade)
+
+  userId           String?
+  user             User?        @relation(fields: [userId], references: [id])
+
+  externalName     String?
+  role             String       // "ARTIST" | "WRITER" | "PRODUCER" | etc.
+
+  walletAddress    String?
+  pro              String?
+  ipiCae           String?
+  publishingEntity String?
+
+  shares           SplitShare[]
+
+  createdAt        DateTime     @default(now())
+  
+  @@index([splitSheetId])
+  @@index([userId])
+}
+
+model SplitShare {
+  id                 String      @id @default(cuid())
+  splitSheetId       String
+  splitSheet         SplitSheet  @relation(fields: [splitSheetId], references: [id], onDelete: Cascade)
+
+  partyId            String
+  party              SplitParty  @relation(fields: [partyId], references: [id], onDelete: Cascade)
+
+  masterSharePct     Float       @default(0)
+  publishingSharePct Float       @default(0)
+  
+  @@index([splitSheetId])
+  @@index([partyId])
+}
+
+model Earning {
+  id            String        @id @default(cuid())
+  workId        String
+  work          Work          @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  type          String        // MASTER or PUBLISHING
+  source        String
+  amountCents   Int
+  currency      String        @default("USD")
+  occurredAt    DateTime
+  createdAt     DateTime      @default(now())
+  
+  @@index([workId])
+  @@index([occurredAt])
+}
+
+model Balance {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+
+  currency       String        @default("USD")
+  availableCents Int           @default(0)
+  pendingCents   Int           @default(0)
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  @@unique([userId, currency])
+  @@index([userId])
+}
+
+model AdvanceAgreement {
+  id                  String          @id @default(cuid())
+  name                String
+
+  funderId            String?         // optional for now
+  borrowerId          String
+  borrower            User            @relation(fields: [borrowerId], references: [id])
+
+  advanceAmountCents  Int
+  recoupPercentage    Float           // 0–1
+  capAmountCents      Int?
+  recoupedCents       Int             @default(0)
+
+  status              String          @default("ACTIVE")
+
+  works               AdvanceWork[]
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  
+  @@index([borrowerId])
+}
+
+model AdvanceWork {
+  id                   String            @id @default(cuid())
+  advanceAgreementId   String
+  workId               String
+
+  advanceAgreement     AdvanceAgreement  @relation(fields: [advanceAgreementId], references: [id], onDelete: Cascade)
+  work                 Work              @relation(fields: [workId], references: [id], onDelete: Cascade)
+  
+  @@index([advanceAgreementId])
+  @@index([workId])
+}
+
+model PayoutPreference {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  user          User           @relation(fields: [userId], references: [id])
+
+  payoutMethod  String         // BANK, WALLET, or BOTH
+  bankCustomerId String?
+  bankAccountId  String?
+  walletAddress  String?
+
+  payoutCadence String         // DAILY, WEEKLY, or MONTHLY
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// Vault Asset model
+model Asset {
+  id              String    @id @default(cuid())
+  ownerId         String
+  title           String
+  description     String?
+  fileUrl         String
+  fileName        String
+  fileSize        Int?
+  mimeType        String?
+  duration        Float?
+  
+  // Audio metadata
+  bpm             Int?
+  key             String?
+  genre           String?
+  moodTags        String?   // JSON array
+  
+  // Asset categorization
+  assetType       String?   // BEAT, VOCAL, LOOP, etc.
+  productCategory String?   // For marketplace
+  
+  // Status
+  status          String    @default("IDEA")
+  isForSale       Boolean   @default(false)
+  price           Float?
+  
+  // Relations
+  analysis        AssetAnalysis?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([ownerId])
+  @@index([assetType])
+  @@index([status])
+}
+
+// AI-Powered Music Analysis
+model AssetAnalysis {
+  id                  String    @id @default(cuid())
+  assetId             String    @unique
+  asset               Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  // Mansuba AI Analysis
+  instruments         String?   // JSON array of detected instruments
+  instrumentsRaw      String?   // Raw Mansuba output
+  instrumentPlotJson  String?   // JSON for instrument timeline plot
+  audioSummary        String?   // Natural language summary
+  aiInsight           String?   // AI-generated insights
+  viralityPlotJson    String?   // JSON for virality score plot
+
+  // Cyanite Analysis
+  cyaniteMood         String?
+  cyaniteGenres       String?   // JSON array
+  cyaniteBpm          Int?
+  cyaniteKey          String?
+  cyaniteTags         String?   // JSON array
+
+  // Processing status
+  status              String    @default("PENDING") // PENDING | PROCESSING | COMPLETE | FAILED
+  errorMessage        String?
+  
+  // Retry tracking
+  retryCount          Int       @default(0)
+  lastRetryAt         DateTime?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@index([assetId])
+  @@index([status])
+}

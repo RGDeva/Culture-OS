@@ -1,0 +1,713 @@
+// NoCulture OS - Unified Platform Schema
+// Complete database schema for the full music industry operating system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Changed from SQLite for production
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE USER & PROFILE
+// ============================================================================
+
+model User {
+  id              String   @id @default(cuid())
+  email           String?  @unique
+  walletAddress   String?  @unique
+  handle          String?  @unique
+  displayName     String
+  bio             String?
+  avatar          String?
+  
+  // Professional info
+  roles           String[] // ['producer', 'artist', 'engineer', 'studio', 'videographer', 'manager']
+  location        String?
+  latitude        Float?
+  longitude       Float?
+  hourlyRate      Float?
+  dayRate         Float?
+  servicesOffered String[] // ['production', 'mixing', 'mastering', 'recording', 'video', 'session_musician']
+  
+  // Reputation & verification
+  rating          Float?   @default(0)
+  reviewCount     Int      @default(0)
+  verified        Boolean  @default(false)
+  
+  // Portfolio & connections
+  portfolioAssets String[] // Asset IDs to showcase
+  connectedPlatforms Json? // { spotify: 'url', apple: 'url', soundcloud: 'url' }
+  
+  // Availability
+  availabilityCalendar Json? // [{ day: 'monday', startTime: '09:00', endTime: '17:00' }]
+  
+  // Legacy fields
+  socials         String?  @default("{}")
+  artistAccountId String?  @unique
+  classification  String?
+  onboarded       Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  ownedProjects       Project[]        @relation("ProjectOwner")
+  collaborations      ProjectCollaborator[]
+  ownedAssets         Asset[]
+  bookingsAsClient    Booking[]        @relation("BookingClient")
+  bookingsAsProvider  Booking[]        @relation("BookingProvider")
+  reviews             Review[]         @relation("ReviewReviewer")
+  receivedReviews     Review[]         @relation("ReviewReviewee")
+  chatParticipants    ChatParticipant[]
+  notifications       Notification[]
+  paymentLinks        PaymentLink[]
+  
+  // Legacy relations
+  works                Work[]
+  splitParties         SplitParty[]
+  balances             Balance[]
+  advanceAgreements    AdvanceAgreement[]
+  payoutPreference     PayoutPreference?
+  
+  @@index([email])
+  @@index([walletAddress])
+  @@index([handle])
+  @@index([location])
+  @@index([rating])
+}
+
+// ============================================================================
+// PROJECTS & COLLABORATION
+// ============================================================================
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  READY_FOR_RELEASE
+  RELEASED
+  ARCHIVED
+}
+
+enum RightsType {
+  EXCLUSIVE
+  NON_EXCLUSIVE
+  LEASE
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  ownerId         String
+  owner           User          @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  title           String
+  description     String?
+  coverArt        String?
+  
+  status          ProjectStatus @default(DRAFT)
+  
+  // Collaboration needs
+  needs           String[] // ['mixing', 'mastering', 'vocals', 'video', 'artwork']
+  
+  // Rights & licensing
+  rightsType      RightsType?
+  trackCopiesLimit Int?
+  
+  // Metadata for distribution
+  metadata        Json? // { genre, mood, releaseDate, isrc, upc, etc. }
+  
+  // Distribution
+  distributionStatus String? // 'pending', 'submitted', 'live', 'failed'
+  distributionLinks  Json?   // { spotify: 'url', apple: 'url', etc. }
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  collaborators   ProjectCollaborator[]
+  splits          ProjectSplit[]
+  assets          Asset[]
+  bookings        Booking[]
+  
+  @@index([ownerId])
+  @@index([status])
+}
+
+model ProjectCollaborator {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  role        String   // 'producer', 'artist', 'engineer', 'mixer', 'vocalist', etc.
+  permissions String[] // ['edit', 'view', 'invite', 'distribute']
+  
+  invitedAt   DateTime @default(now())
+  acceptedAt  DateTime?
+  
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ProjectSplit {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  share       Float    // 0.0 to 1.0 (e.g., 0.50 = 50%)
+  splitType   String   // 'master', 'publishing', 'performance'
+  notes       String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([projectId])
+  @@index([userId])
+}
+
+// ============================================================================
+// ASSETS & FILES
+// ============================================================================
+
+enum AssetType {
+  LOOP
+  BEAT
+  TRACK
+  KIT
+  STEM
+  VIDEO
+  ARTWORK
+  OTHER
+}
+
+enum AssetStatus {
+  DRAFT
+  NEEDS_MIX
+  NEEDS_MASTER
+  FINAL
+  FOR_SALE
+  DISTRIBUTED
+}
+
+model Asset {
+  id              String      @id @default(cuid())
+  ownerId         String
+  owner           User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  projectId       String?
+  project         Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  title           String
+  description     String?
+  
+  // File info
+  fileUrl         String
+  fileName        String
+  fileSize        Int?
+  mimeType        String?
+  duration        Float?
+  
+  // Asset classification
+  assetType       AssetType   @default(OTHER)
+  status          AssetStatus @default(DRAFT)
+  
+  // Marketplace
+  forSale         Boolean     @default(false)
+  price           Float?
+  licenseType     String?     // Reference to License model
+  
+  // Audio metadata
+  bpm             Int?
+  key             String?
+  genre           String?
+  moodTags        String[]
+  
+  // AI Analysis
+  analysisMetadata Json?      // Full analysis from audioFlux, genre classifier, etc.
+  qualityScore    Float?      // 0-100 from audiobox-aesthetics
+  viralityScore   Float?      // 0-100 predicted virality
+  
+  // Distribution
+  distributionLinks Json?     // { spotify: 'url', apple: 'url', etc. }
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  analysis        AssetAnalysis?
+  licenses        AssetLicense[]
+  paymentLinks    PaymentLink[]
+  
+  @@index([ownerId])
+  @@index([projectId])
+  @@index([assetType])
+  @@index([status])
+  @@index([forSale])
+}
+
+// AI Analysis (existing model - enhanced)
+model AssetAnalysis {
+  id                  String    @id @default(cuid())
+  assetId             String    @unique
+  asset               Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  // Mansuba AI Analysis
+  instruments         String?
+  instrumentsRaw      String?
+  instrumentPlotJson  String?
+  audioSummary        String?
+  aiInsight           String?
+  viralityPlotJson    String?
+
+  // Cyanite Analysis
+  cyaniteMood         String?
+  cyaniteGenres       String?
+  cyaniteBpm          Int?
+  cyaniteKey          String?
+  cyaniteTags         String?
+  
+  // Enhanced analysis
+  audioFeatures       Json?     // From audioFlux
+  genreClassification Json?     // From music_genres_classification
+  leadInstrument      String?   // From LeadInstrumentDetection
+  aestheticsScore     Float?    // From audiobox-aesthetics
+
+  // Processing status
+  status              String    @default("PENDING")
+  errorMessage        String?
+  retryCount          Int       @default(0)
+  lastRetryAt         DateTime?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@index([assetId])
+  @@index([status])
+}
+
+// ============================================================================
+// LICENSING
+// ============================================================================
+
+model License {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  price           Float
+  scope           String   // 'streaming_only', 'commercial_release', 'exclusive'
+  maxCopies       Int?     // null = unlimited
+  usageRights     String[] // ['streaming', 'radio', 'tv', 'film', 'advertising']
+  
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  assetLicenses   AssetLicense[]
+}
+
+model AssetLicense {
+  id          String   @id @default(cuid())
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  licenseId   String
+  license     License  @relation(fields: [licenseId], references: [id])
+  
+  active      Boolean  @default(true)
+  
+  @@index([assetId])
+  @@index([licenseId])
+}
+
+// ============================================================================
+// MARKETPLACE & BOOKING
+// ============================================================================
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum ServiceType {
+  PRODUCTION
+  MIXING
+  MASTERING
+  RECORDING
+  VIDEO_PRODUCTION
+  PHOTOGRAPHY
+  SESSION_MUSICIAN
+  STUDIO_RENTAL
+  SONGWRITING
+  VOCAL_COACHING
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  
+  clientId        String
+  client          User          @relation("BookingClient", fields: [clientId], references: [id])
+  providerId      String
+  provider        User          @relation("BookingProvider", fields: [providerId], references: [id])
+  
+  projectId       String?
+  project         Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  serviceType     ServiceType
+  title           String
+  description     String?
+  
+  // Location (optional for remote)
+  location        String?
+  latitude        Float?
+  longitude       Float?
+  isRemote        Boolean       @default(false)
+  
+  // Scheduling
+  scheduledTime   DateTime
+  durationHours   Float
+  
+  // Pricing
+  rate            Float         // Hourly or flat rate
+  totalPrice      Float
+  currency        String        @default("USD")
+  
+  // Status & payment
+  status          BookingStatus @default(PENDING)
+  paymentLinkId   String?
+  paymentLink     PaymentLink?  @relation(fields: [paymentLinkId], references: [id])
+  escrowStatus    String?       // 'pending', 'held', 'released', 'refunded'
+  
+  // Deliverables
+  deliverables    String[]      // Asset IDs or file URLs
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  completedAt     DateTime?
+  
+  // Relations
+  splits          BookingSplit[]
+  reviews         Review[]
+  chat            Chat?
+  
+  @@index([clientId])
+  @@index([providerId])
+  @@index([status])
+  @@index([scheduledTime])
+}
+
+model BookingSplit {
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  share       Float    // 0.0 to 1.0
+  splitType   String   // 'service_fee', 'platform_fee', 'referral'
+  
+  @@index([bookingId])
+}
+
+// ============================================================================
+// REVIEWS & REPUTATION
+// ============================================================================
+
+model Review {
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  reviewerId  String
+  reviewer    User     @relation("ReviewReviewer", fields: [reviewerId], references: [id])
+  revieweeId  String
+  reviewee    User     @relation("ReviewReviewee", fields: [revieweeId], references: [id])
+  
+  rating      Int      // 1-5
+  comment     String?
+  
+  transactionValue Float? // Weight reviews by transaction size
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([bookingId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+}
+
+// ============================================================================
+// PAYMENTS & SPLITS
+// ============================================================================
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model PaymentLink {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  
+  targetType  String        // 'Asset' or 'Booking'
+  targetId    String
+  
+  amount      Float
+  currency    String        @default("USD")
+  
+  // Payment provider
+  provider    String        // 'stripe', 'x402', 'coinbase'
+  providerLinkId String?    // External payment link ID
+  url         String?       // Payment URL
+  
+  status      PaymentStatus @default(PENDING)
+  
+  // Metadata
+  metadata    Json?         // License info, service agreement, etc.
+  
+  createdAt   DateTime      @default(now())
+  paidAt      DateTime?
+  
+  // Relations
+  splits      PaymentSplit[]
+  bookings    Booking[]
+  assets      Asset[]
+  
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+model PaymentSplit {
+  id            String      @id @default(cuid())
+  paymentLinkId String
+  paymentLink   PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+  
+  userId        String
+  share         Float       // 0.0 to 1.0
+  amount        Float       // Calculated amount
+  
+  status        String      @default("pending") // 'pending', 'processing', 'completed', 'failed'
+  
+  @@index([paymentLinkId])
+  @@index([userId])
+}
+
+// ============================================================================
+// CHAT & NOTIFICATIONS
+// ============================================================================
+
+model Chat {
+  id          String   @id @default(cuid())
+  bookingId   String?  @unique
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+  
+  title       String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+}
+
+model ChatParticipant {
+  id          String   @id @default(cuid())
+  chatId      String
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  joinedAt    DateTime @default(now())
+  lastReadAt  DateTime?
+  
+  @@unique([chatId, userId])
+  @@index([chatId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  chatId      String
+  chat        Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  senderId    String
+  content     String
+  
+  attachments Json?    // [{ type: 'asset', id: 'assetId', url: 'url' }]
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([chatId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String   // 'booking_request', 'payment_received', 'review_received', 'message', etc.
+  title       String
+  message     String
+  data        Json?    // Additional context
+  
+  read        Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// LEGACY MODELS (Publishing & Earnings)
+// ============================================================================
+
+enum WorkStatus {
+  IDEA
+  IN_PROGRESS
+  RELEASED
+  CATALOGED
+}
+
+enum EarningType {
+  MASTER
+  PUBLISHING
+}
+
+enum AdvanceStatus {
+  PENDING
+  ACTIVE
+  RECOUPED
+  DEFAULTED
+}
+
+model Work {
+  id          String     @id @default(cuid())
+  ownerId     String
+  owner       User       @relation(fields: [ownerId], references: [id])
+  title       String
+  isrc        String?
+  status      WorkStatus @default(IDEA)
+  releaseDate DateTime?
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  splitSheets SplitSheet[]
+  earnings    Earning[]
+  advances    AdvanceWork[]
+  
+  @@index([ownerId])
+}
+
+model SplitSheet {
+  id        String   @id @default(cuid())
+  workId    String
+  work      Work     @relation(fields: [workId], references: [id])
+  name      String
+  createdAt DateTime @default(now())
+  
+  parties   SplitParty[]
+  shares    SplitShare[]
+  
+  @@index([workId])
+}
+
+model SplitParty {
+  id            String       @id @default(cuid())
+  splitSheetId  String
+  splitSheet    SplitSheet   @relation(fields: [splitSheetId], references: [id])
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id])
+  name          String
+  email         String?
+  role          String?
+  
+  shares        SplitShare[]
+  
+  @@index([splitSheetId])
+  @@index([userId])
+}
+
+model SplitShare {
+  id            String      @id @default(cuid())
+  splitSheetId  String
+  splitSheet    SplitSheet  @relation(fields: [splitSheetId], references: [id])
+  partyId       String
+  party         SplitParty  @relation(fields: [partyId], references: [id])
+  percentage    Float
+  earningType   EarningType
+  
+  @@index([splitSheetId])
+  @@index([partyId])
+}
+
+model Earning {
+  id          String      @id @default(cuid())
+  workId      String
+  work        Work        @relation(fields: [workId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  amount      Float
+  currency    String      @default("USD")
+  earningType EarningType
+  source      String?
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime    @default(now())
+  
+  @@index([workId])
+  @@index([userId])
+}
+
+model Balance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float    @default(0)
+  currency  String   @default("USD")
+  updatedAt DateTime @updatedAt
+}
+
+model AdvanceAgreement {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  amount      Float
+  currency    String        @default("USD")
+  status      AdvanceStatus @default(PENDING)
+  terms       Json?
+  createdAt   DateTime      @default(now())
+  
+  works       AdvanceWork[]
+}
+
+model AdvanceWork {
+  id         String           @id @default(cuid())
+  advanceId  String
+  advance    AdvanceAgreement @relation(fields: [advanceId], references: [id])
+  workId     String
+  work       Work             @relation(fields: [workId], references: [id])
+  
+  @@unique([advanceId, workId])
+}
+
+model PayoutPreference {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  method        String
+  details       Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

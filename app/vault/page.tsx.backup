@@ -1,0 +1,468 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { usePrivy } from "@privy-io/react-auth"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Upload, File, Folder, Image, Music2, Film, FileText, Search, Plus, ExternalLink, Grid, List, Play, Pause, X, Download, Share2 } from "lucide-react"
+import Link from "next/link"
+
+export default function VaultPage() {
+  const privyHook = usePrivy()
+  const { authenticated, user, login } = privyHook || {}
+  const [activeTab, setActiveTab] = useState("all")
+  const [projects, setProjects] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [selectedProject, setSelectedProject] = useState<any | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null)
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (authenticated && user?.id) {
+      fetchProjects()
+    } else {
+      setLoading(false)
+    }
+  }, [authenticated, user?.id])
+
+  const fetchProjects = async () => {
+    if (!user?.id) return
+    
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/vault/projects?userId=${user.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setProjects(data.projects || [])
+      }
+    } catch (error) {
+      console.error('[VAULT] Error fetching projects:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const files = [
+    { id: 1, name: "Neon Dreams Master.wav", type: "audio", size: "45.2 MB", date: "2025-08-01" },
+    { id: 2, name: "Album Cover.png", type: "image", size: "2.4 MB", date: "2025-08-01" },
+    { id: 3, name: "Lyrics.txt", type: "document", size: "12 KB", date: "2025-07-30" },
+    { id: 4, name: "Music Video.mp4", type: "video", size: "245.7 MB", date: "2025-07-28" },
+    { id: 5, name: "Stems", type: "folder", size: "1.2 GB", date: "2025-07-25" },
+  ]
+
+  const filteredFiles = activeTab === "all" 
+    ? files 
+    : files.filter(file => file.type === activeTab)
+
+  const getFileIcon = (type: string) => {
+    switch (type) {
+      case 'folder':
+        return <Folder className="h-5 w-5 text-yellow-400" />
+      case 'audio':
+        return <Music2 className="h-5 w-5 text-green-400" />
+      case 'image':
+        return <Image className="h-5 w-5 text-blue-400" />
+      case 'video':
+        return <Film className="h-5 w-5 text-purple-400" />
+      case 'document':
+        return <FileText className="h-5 w-5 text-gray-400" />
+      default:
+        return <File className="h-5 w-5" />
+    }
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-black text-green-400 font-mono flex items-center justify-center p-8">
+        <div className="text-center max-w-md">
+          <Folder className="h-16 w-16 mx-auto mb-4" />
+          <h1 className="text-2xl mb-4">&gt; VAULT</h1>
+          <p className="text-green-400/60 mb-6">Login to access your project vault</p>
+          <Button
+            onClick={() => login && login()}
+            className="bg-green-400 text-black hover:bg-green-300 font-mono font-bold"
+          >
+            LOGIN
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-green-400 p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/" className="text-green-400 hover:text-black hover:bg-green-400 font-mono px-4 py-2 rounded flex items-center">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            HOME
+          </Link>
+          <h1 className="text-3xl md:text-5xl font-mono font-bold">&gt; VAULT</h1>
+          <div className="flex gap-2">
+            <Link href="/vault/new">
+              <Button className="bg-pink-400 text-black hover:bg-pink-300 font-mono font-bold">
+                <Plus className="h-4 w-4 mr-2" />
+                CREATE_NEW_PROJECT
+              </Button>
+            </Link>
+            <Link href="/vault/upload">
+              <Button className="bg-green-400 text-black hover:bg-green-300 font-mono">
+                <Upload className="h-4 w-4 mr-2" />
+                UPLOAD
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Projects Section */}
+        <div className="mb-12">
+          <h2 className="text-xl mb-4">&gt; YOUR_PROJECTS</h2>
+          {loading ? (
+            <div className="text-center py-12 border-2 border-green-400/20">
+              <div className="animate-pulse">LOADING_PROJECTS...</div>
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="text-center py-12 border-2 border-green-400/20">
+              <Folder className="h-12 w-12 mx-auto text-green-400/50 mb-4" />
+              <h3 className="text-lg font-mono mb-2">NO_PROJECTS_YET</h3>
+              <p className="text-green-400/60 mb-6">Create your first project to start collaborating</p>
+              <Link href="/vault/new">
+                <Button className="bg-green-400 text-black hover:bg-green-300 font-mono font-bold">
+                  <Plus className="mr-2 h-4 w-4" /> CREATE_PROJECT
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <>
+              {/* View Toggle */}
+              <div className="flex justify-end mb-4 gap-2">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 border-2 ${viewMode === 'grid' ? 'bg-green-400 text-black border-green-400' : 'bg-black text-green-400 border-green-400/30 hover:border-green-400'}`}
+                >
+                  <Grid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 border-2 ${viewMode === 'list' ? 'bg-green-400 text-black border-green-400' : 'bg-black text-green-400 border-green-400/30 hover:border-green-400'}`}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Grid View */}
+              {viewMode === 'grid' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects.map(project => (
+                    <div 
+                      key={project.id} 
+                      onClick={() => {
+                        setSelectedProject(project)
+                        setShowDetailModal(true)
+                      }}
+                      className="border-2 border-green-400/30 p-6 hover:border-green-400 transition-all cursor-pointer group"
+                    >
+                      <h3 className="text-xl font-bold mb-3 group-hover:text-green-300">{project.title}</h3>
+                      {project.tags && project.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {project.tags.slice(0, 3).map((tag: string, i: number) => (
+                            <span key={i} className="text-xs px-2 py-1 border border-green-400/30 text-green-400/70">
+                              #{tag}
+                            </span>
+                          ))}
+                          {project.tags.length > 3 && (
+                            <span className="text-xs px-2 py-1 text-green-400/50">+{project.tags.length - 3}</span>
+                          )}
+                        </div>
+                      )}
+                      {project.openRoles && project.openRoles.length > 0 && (
+                        <div className="mb-3 px-2 py-1 bg-pink-400/20 border border-pink-400/50 text-pink-400 text-xs inline-block">
+                          {project.openRoles.length} OPEN_ROLE{project.openRoles.length > 1 ? 'S' : ''}
+                        </div>
+                      )}
+                      <div className="text-xs text-green-400/60 mt-4">
+                        Click to view details
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* List View */}
+              {viewMode === 'list' && (
+                <div className="border-2 border-green-400/30 divide-y divide-green-400/20">
+                  {projects.map(project => (
+                    <div 
+                      key={project.id}
+                      onClick={() => {
+                        setSelectedProject(project)
+                        setShowDetailModal(true)
+                      }}
+                      className="p-6 hover:bg-green-400/5 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold mb-2 group-hover:text-green-300">{project.title}</h3>
+                          {project.tags && project.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {project.tags.map((tag: string, i: number) => (
+                                <span key={i} className="text-xs px-2 py-1 border border-green-400/30 text-green-400/70">
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4 text-xs text-green-400/60">
+                            {project.openRoles && project.openRoles.length > 0 && (
+                              <span className="px-2 py-1 bg-pink-400/20 border border-pink-400/50 text-pink-400">
+                                {project.openRoles.length} OPEN_ROLE{project.openRoles.length > 1 ? 'S' : ''}
+                              </span>
+                            )}
+                            {project.previewUrl && <span>• HAS_PREVIEW</span>}
+                            {project.stemsUrl && <span>• HAS_STEMS</span>}
+                          </div>
+                        </div>
+                        <div className="text-xs text-green-400/60">
+                          Click to view →
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Files Section */}
+        <div>
+          <h2 className="text-xl mb-4">&gt; FILES</h2>
+
+          {/* Search and Filter */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="relative flex-1 max-w-2xl">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-400" />
+              <input
+                type="text"
+                placeholder="SEARCH_FILES"
+                className="w-full bg-black/50 border border-green-400/50 text-green-400 font-mono px-4 pl-10 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div className="flex space-x-2 overflow-x-auto pb-2 md:pb-0">
+              {['all', 'audio', 'image', 'video', 'document', 'folder'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 text-sm font-mono whitespace-nowrap border-2 ${
+                    activeTab === tab
+                      ? 'bg-green-400 text-black border-green-400'
+                      : 'bg-black text-green-400 border-green-400/30 hover:border-green-400'
+                  }`}>
+                  {tab.toUpperCase()}
+                </button>
+              ))}
+          </div>
+        </div>
+
+        {/* Files Grid */}
+        <div className="border border-green-400/20 rounded-lg overflow-hidden">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 p-4 border-b border-green-400/20 text-green-400/70 text-xs font-mono">
+            <div className="col-span-6">NAME</div>
+            <div className="col-span-2">TYPE</div>
+            <div className="col-span-2">SIZE</div>
+            <div className="col-span-2">MODIFIED</div>
+          </div>
+
+          {/* Files List */}
+          {filteredFiles.length > 0 ? (
+            <div className="divide-y divide-green-400/10">
+              {filteredFiles.map((file) => (
+                <div 
+                  key={file.id} 
+                  className="grid grid-cols-12 gap-4 p-4 hover:bg-green-400/5 transition-colors cursor-pointer items-center"
+                  onClick={() => console.log(`Opening ${file.name}`)}
+                >
+                  <div className="col-span-6 flex items-center space-x-3">
+                    {getFileIcon(file.type)}
+                    <span className="truncate">{file.name}</span>
+                  </div>
+                  <div className="col-span-2 text-sm text-green-400/80">{file.type.toUpperCase()}</div>
+                  <div className="col-span-2 text-sm text-green-400/60">{file.size}</div>
+                  <div className="col-span-2 text-sm text-green-400/50">{file.date}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-12 text-center text-green-400/50">
+              <p>NO_FILES_FOUND</p>
+              <p className="text-sm mt-2">Upload files to get started</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+        {/* Storage Usage */}
+        <div className="mt-8 p-6 bg-black/30 border border-green-400/20 rounded-lg">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-mono text-green-400">STORAGE</h3>
+            <span className="text-sm text-green-400/70">1.5 GB of 10 GB used</span>
+          </div>
+          <div className="w-full bg-green-400/10 rounded-full h-2.5">
+            <div className="bg-green-400 h-2.5 rounded-full" style={{ width: '15%' }}></div>
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-green-400/50">
+            <span>15% used</span>
+            <span>8.5 GB available</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Project Detail Modal */}
+      {selectedProject && showDetailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-black border-2 border-green-400 font-mono">
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowDetailModal(false)
+                setSelectedProject(null)
+                if (audioElement) {
+                  audioElement.pause()
+                  setPlayingAudio(null)
+                }
+              }}
+              className="absolute top-4 right-4 z-10 p-2 bg-black/80 border border-green-400 hover:bg-green-400 hover:text-black transition-all"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="border-b-2 border-green-400/30 p-6">
+              <h2 className="text-3xl font-bold text-green-400 mb-4">{selectedProject.title}</h2>
+              {selectedProject.tags && selectedProject.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedProject.tags.map((tag: string, i: number) => (
+                    <span key={i} className="px-3 py-1 bg-green-400/10 border border-green-400/30 text-green-400 text-sm">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Audio Preview */}
+              {selectedProject.previewUrl && (
+                <div className="border-2 border-green-400/30 p-4 bg-green-400/5">
+                  <h3 className="text-lg font-bold text-green-400 mb-3">&gt; AUDIO_PREVIEW</h3>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      onClick={() => {
+                        if (playingAudio === selectedProject.previewUrl) {
+                          audioElement?.pause()
+                          setPlayingAudio(null)
+                        } else {
+                          if (audioElement) {
+                            audioElement.pause()
+                          }
+                          const audio = new Audio(selectedProject.previewUrl)
+                          audio.addEventListener('ended', () => setPlayingAudio(null))
+                          audio.play()
+                          setAudioElement(audio)
+                          setPlayingAudio(selectedProject.previewUrl)
+                        }
+                      }}
+                      className="bg-green-400 text-black hover:bg-green-300"
+                    >
+                      {playingAudio === selectedProject.previewUrl ? (
+                        <><Pause className="h-5 w-5 mr-2" /> PAUSE</>
+                      ) : (
+                        <><Play className="h-5 w-5 mr-2" /> PLAY</>
+                      )}
+                    </Button>
+                    <div className="flex-1">
+                      <p className="text-sm text-green-400 font-bold">PREVIEW_TRACK</p>
+                      <p className="text-xs text-green-400/60">Click to {playingAudio === selectedProject.previewUrl ? 'pause' : 'play'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Stems/Files */}
+              {selectedProject.stemsUrl && (
+                <div className="border-2 border-green-400/30 p-4">
+                  <h3 className="text-lg font-bold text-green-400 mb-3">&gt; PROJECT_FILES</h3>
+                  <a 
+                    href={selectedProject.stemsUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-green-400 hover:text-green-300"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download stems and project files</span>
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              )}
+
+              {/* Open Roles */}
+              {selectedProject.openRoles && selectedProject.openRoles.length > 0 && (
+                <div className="border-2 border-green-400/30 p-4">
+                  <h3 className="text-lg font-bold text-green-400 mb-3">&gt; OPEN_ROLES</h3>
+                  <div className="space-y-3">
+                    {selectedProject.openRoles.map((role: any, i: number) => (
+                      <div key={i} className="border border-pink-400/30 p-3 bg-pink-400/5">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-bold text-pink-400">{role.role}</h4>
+                          {role.compensation && (
+                            <span className="text-sm text-green-400">{role.compensation}</span>
+                          )}
+                        </div>
+                        {role.description && (
+                          <p className="text-sm text-green-400/80">{role.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-4 pt-4 border-t-2 border-green-400/20">
+                <Button
+                  onClick={() => router.push(`/vault/${selectedProject.id}/edit`)}
+                  variant="outline"
+                  className="flex-1 border-green-400 text-green-400 font-mono"
+                >
+                  EDIT_PROJECT
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Share functionality
+                    if (navigator.share) {
+                      navigator.share({
+                        title: selectedProject.title,
+                        text: `Check out my project: ${selectedProject.title}`,
+                        url: window.location.href
+                      })
+                    }
+                  }}
+                  className="flex-1 bg-green-400 text-black hover:bg-green-300 font-mono"
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  SHARE
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

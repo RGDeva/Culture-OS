@@ -1,0 +1,370 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Users, Search, MapPin, Briefcase, X } from "lucide-react"
+import Link from "next/link"
+import { getAllProfiles } from "@/lib/profileStore"
+import { Profile } from "@/types/profile"
+import { Bounty, BountyRole } from "@/types/bounty"
+
+// Mock data for when Supabase is not configured
+const mockUsers = [
+  {
+    id: '1',
+    username: 'ProducerMike',
+    role: 'Producer',
+    bio: 'Hip-hop producer specializing in trap and boom bap beats. 10+ years experience.',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    username: 'VocalQueen',
+    role: 'Vocalist',
+    bio: 'R&B and soul vocalist available for features and hooks.',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    username: 'BeatMaker3000',
+    role: 'Beat Maker',
+    bio: 'Creating fire beats daily. Let\'s collaborate!',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    username: 'MixMaster',
+    role: 'Audio Engineer',
+    bio: 'Professional mixing and mastering services. Quick turnaround.',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '5',
+    username: 'LyricistPro',
+    role: 'Songwriter',
+    bio: 'Writing hits for artists worldwide. Multiple genres.',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '6',
+    username: 'StudioOwner',
+    role: 'Studio Owner',
+    bio: 'Premium recording studio in Boston. Book your session today.',
+    created_at: new Date().toISOString(),
+  },
+]
+
+export default function NetworkPage() {
+  const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeTab, setActiveTab] = useState<'directory' | 'map' | 'collabs'>('directory')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [openCollabProjects, setOpenCollabProjects] = useState<any[]>([])
+  const router = useRouter()
+
+  useEffect(() => {
+    fetchUsers()
+    fetchOpenCollabs()
+  }, [])
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      
+      // Try to get profiles from in-memory store first
+      const profiles = getAllProfiles()
+      
+      if (profiles && profiles.length > 0) {
+        setUsers(profiles)
+        setLoading(false)
+        return
+      }
+      
+      // Check if Supabase is configured
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false })
+        
+        if (error) {
+          console.warn('Supabase fetch error, using mock data:', error)
+          setUsers(mockUsers)
+        } else {
+          setUsers(data || mockUsers)
+        }
+      } else {
+        // Use mock data immediately if Supabase is not configured
+        console.log('Supabase not configured, using mock data')
+        await new Promise(resolve => setTimeout(resolve, 300))
+        setUsers(mockUsers)
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      setUsers(mockUsers)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchOpenCollabs = () => {
+    // Get Vault projects with open roles from in-memory store
+    const projects = getVaultProjects()
+    const openProjects = projects.filter(p => p.openRoles && p.openRoles.length > 0)
+    setOpenCollabProjects(openProjects)
+  }
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.bio?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.username?.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesRole = roleFilter === 'all' || user.roles?.includes(roleFilter)
+    
+    return matchesSearch && matchesRole
+  })
+
+  const roles = ['all', 'Artist', 'Producer', 'Engineer', 'Studio', 'Manager', 'Label']
+
+  // Convert profiles to creators for map (with location data)
+  const creatorsForMap = filteredUsers
+    .filter(user => user.locationCity && user.locationCountry)
+    .map(user => ({
+      id: user.id,
+      name: user.displayName || user.username || 'Creator',
+      role: user.roles?.[0] || 'Creator',
+      location: user.locationCity,
+      country: user.locationCountry,
+      bio: user.bio || '',
+      openToCollabs: user.openToCollabs || false
+    }))
+
+  return (
+    <div className="min-h-screen bg-black text-green-400 relative p-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <Link href="/" className="text-green-400 hover:text-black hover:bg-green-400 font-mono px-4 py-2 rounded flex items-center">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          HOME
+        </Link>
+        <h1 className="text-3xl md:text-5xl font-mono font-bold">&gt; NETWORK</h1>
+        <div className="w-32"></div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-8 border-b border-green-400/20 pb-4">
+        <button
+          onClick={() => setActiveTab('directory')}
+          className={`px-6 py-2 font-mono font-bold transition-all ${
+            activeTab === 'directory'
+              ? 'bg-green-400 text-black'
+              : 'text-green-400 hover:bg-green-400/10'
+          }`}
+        >
+          <Users className="inline mr-2 h-4 w-4" />
+          DIRECTORY
+        </button>
+        <button
+          onClick={() => setActiveTab('map')}
+          className={`px-6 py-2 font-mono font-bold transition-all ${
+            activeTab === 'map'
+              ? 'bg-green-400 text-black'
+              : 'text-green-400 hover:bg-green-400/10'
+          }`}
+        >
+          <Map className="inline mr-2 h-4 w-4" />
+          MAP_VIEW
+        </button>
+        <button
+          onClick={() => setActiveTab('collabs')}
+          className={`px-6 py-2 font-mono font-bold transition-all ${
+            activeTab === 'collabs'
+              ? 'bg-green-400 text-black'
+              : 'text-green-400 hover:bg-green-400/10'
+          }`}
+        >
+          <Briefcase className="inline mr-2 h-4 w-4" />
+          OPEN_COLLABS
+          {openCollabProjects.length > 0 && (
+            <span className="ml-2 px-2 py-0.5 bg-pink-400 text-black text-xs rounded-full">
+              {openCollabProjects.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Directory Tab */}
+      {activeTab === 'directory' && (
+        <>
+          {/* Search & Filter Bar */}
+          <div className="flex flex-col md:flex-row gap-4 mb-8">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-400" />
+              <input
+                type="text"
+                placeholder="SEARCH_CREATORS"
+                className="w-full bg-black border border-green-400/50 text-green-400 font-mono px-4 pl-10 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Filter className="h-10 w-10 p-2 border border-green-400/50 text-green-400" />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="bg-black border border-green-400/50 text-green-400 font-mono px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                {roles.map(role => (
+                  <option key={role} value={role}>{role.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Users Grid */}
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-pulse">LOADING_NETWORK...</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredUsers.map((user) => (
+                <div key={user.id} className="border-2 border-green-400/30 p-6 hover:border-green-400 transition-colors">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="h-12 w-12 rounded-full bg-green-400/20 flex items-center justify-center text-green-400 font-bold text-xl">
+                      {(user.displayName || user.username)?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div>
+                      <h3 className="font-mono font-bold text-lg">{user.displayName || user.username || 'Anonymous'}</h3>
+                      <p className="text-green-300/70 text-sm">{user.roles?.join(', ') || user.role || 'Creator'}</p>
+                    </div>
+                  </div>
+                  {user.bio && (
+                    <p className="text-green-300/80 text-sm mb-4 line-clamp-3">{user.bio}</p>
+                  )}
+                  {user.locationCity && (
+                    <p className="text-green-400/60 text-xs mb-3">
+                      📍 {user.locationCity}, {user.locationCountry}
+                    </p>
+                  )}
+                  {user.openToCollabs && (
+                    <div className="mb-3 px-2 py-1 bg-pink-400/20 border border-pink-400/50 text-pink-400 text-xs inline-block">
+                      OPEN_TO_COLLABS
+                    </div>
+                  )}
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm" className="text-xs border-green-400 text-green-400">
+                      <MessageSquare className="h-3 w-3 mr-1" /> MESSAGE
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs border-green-400 text-green-400">
+                      <UserPlus className="h-3 w-3 mr-1" /> CONNECT
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && filteredUsers.length === 0 && (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 mx-auto text-green-400/50 mb-4" />
+              <h3 className="text-xl font-mono">NO_CREATORS_FOUND</h3>
+              <p className="text-green-400/70 mt-2">Try adjusting your search or filters</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Map View Tab */}
+      {activeTab === 'map' && (
+        <div className="border-2 border-green-400/30 p-6">
+          <h2 className="text-xl mb-4">&gt; CREATOR_MAP</h2>
+          <p className="text-green-400/60 mb-6">Find creators near you. {creatorsForMap.length} creators with location data.</p>
+          {creatorsForMap.length > 0 ? (
+            <div className="h-[600px] border-2 border-green-400/20">
+              <CreatorMapComponent creators={creatorsForMap} />
+            </div>
+          ) : (
+            <div className="h-[400px] flex items-center justify-center border-2 border-green-400/20">
+              <div className="text-center">
+                <Map className="h-12 w-12 mx-auto text-green-400/50 mb-4" />
+                <p className="text-green-400/60">No creators with location data yet</p>
+                <p className="text-green-400/40 text-sm mt-2">Complete your onboarding to appear on the map</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Open Collabs Tab */}
+      {activeTab === 'collabs' && (
+        <div>
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl">&gt; OPEN_COLLABORATIONS</h2>
+              <p className="text-green-400/60 text-sm">Projects looking for collaborators</p>
+            </div>
+            <Link href="/vault/new">
+              <Button className="bg-green-400 text-black hover:bg-green-300 font-mono font-bold">
+                + POST_PROJECT
+              </Button>
+            </Link>
+          </div>
+
+          {openCollabProjects.length === 0 ? (
+            <div className="text-center py-12 border-2 border-green-400/20">
+              <Briefcase className="h-12 w-12 mx-auto text-green-400/50 mb-4" />
+              <h3 className="text-xl font-mono">NO_OPEN_COLLABS</h3>
+              <p className="text-green-400/70 mt-2">Be the first to post a project with open roles!</p>
+              <Link href="/vault/new">
+                <Button className="mt-4 bg-green-400 text-black hover:bg-green-300 font-mono font-bold">
+                  CREATE_PROJECT
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {openCollabProjects.map(project => (
+                <div key={project.id} className="border-2 border-pink-400/50 p-6 hover:border-pink-400 transition-colors">
+                  <h3 className="text-xl font-bold mb-2">{project.title}</h3>
+                  {project.tags && project.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {project.tags.map((tag: string, i: number) => (
+                        <span key={i} className="text-xs px-2 py-1 border border-green-400/30 text-green-400/70">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mb-4">
+                    <h4 className="text-sm text-pink-400 mb-2">OPEN_ROLES:</h4>
+                    {project.openRoles.map((role: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-sm mb-2 pb-2 border-b border-green-400/10">
+                        <span className="text-green-400">{role.label}</span>
+                        <span className="text-green-400/60 text-xs">
+                          {role.compensationType === 'flat fee' ? '💵 PAID' : role.compensationType === 'points' ? '📊 POINTS' : '💵 + 📊'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="flex-1 bg-pink-400 text-black hover:bg-pink-300 font-mono text-xs">
+                      APPLY
+                    </Button>
+                    <Button size="sm" variant="outline" className="border-green-400 text-green-400 font-mono text-xs">
+                      VIEW_DETAILS
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
