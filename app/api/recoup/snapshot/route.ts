@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * GET /api/recoup/snapshot
  * Returns the latest Recoupable snapshot for the authenticated user

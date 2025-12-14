@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { Bounty, BountyRole } from '@/types/bounty'
 import { calculateDistance, Coordinates } from '@/lib/location-utils'

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { searchSpotifyArtist, searchYouTube, searchAppleMusic } from '@/lib/music-platforms'
 

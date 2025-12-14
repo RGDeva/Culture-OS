@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 /**
  * Profile Intelligence API - /api/profile/intel
  * GET: Returns mock analytics and campaign suggestions based on profile
