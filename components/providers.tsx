@@ -285,7 +285,7 @@ NEXTAUTH_URL="http://localhost:3001"`}
             }}
           >
             <AuthProvider>
-              <div className="min-h-screen flex flex-col dark:bg-black bg-[#f7f7f7] dark:text-green-400 text-[#0d5c2e]">
+              <div className="min-h-screen flex flex-col bg-black text-green-400">
                 <TopNav onMenuClick={() => setNavOpen(true)} />
                 <RightNav isOpen={navOpen} onClose={() => setNavOpen(false)} />
                 <main className="flex-1">{children}</main>
@@ -298,7 +298,7 @@ NEXTAUTH_URL="http://localhost:3001"`}
           </PrivyProvider>
         </ErrorBoundary>
       ) : (
-        <div className="flex items-center justify-center min-h-screen dark:bg-black bg-white dark:text-green-400 text-gray-900">
+        <div className="flex items-center justify-center min-h-screen bg-black text-green-400">
           <div className="animate-pulse font-mono text-xl">LOADING_NOCULTURE_OS...</div>
         </div>
       )}

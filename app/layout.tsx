@@ -20,10 +20,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} ${playfair.variable} h-full`}
+      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${playfair.variable} h-full`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen" suppressHydrationWarning>
+      <body className="min-h-screen bg-black text-green-400 font-mono" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
