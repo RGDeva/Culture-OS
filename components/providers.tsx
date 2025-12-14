@@ -7,7 +7,7 @@ import { Toaster } from 'sonner';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { TopNav } from './layout/TopNav';
 import { RightNav } from './layout/RightNav';
-import { base } from 'viem/chains';
+// import { base } from 'viem/chains'; // Removed to prevent wallet initialization
 import { ErrorBoundary } from './ErrorBoundary';
 import { DiagnosticOverlay } from './DiagnosticOverlay';
 import { AuthProvider } from '@/context/AuthContext';
