@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Profile } from '@/types/profile'
 import { PlatformLinkingModal } from './PlatformLinkingModal'
 import { EnhancedStorefront } from '@/components/dashboard/EnhancedStorefront'
+import { VaultQuickView } from '@/components/dashboard/VaultQuickView'
 
 interface HomeDashboardProps {
   userId: string
@@ -319,6 +320,9 @@ export function HomeDashboard({ userId, profile }: HomeDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Vault Quick Access */}
+      <VaultQuickView userId={userId} />
 
       {/* Enhanced Storefront Panel */}
       <EnhancedStorefront userId={userId} />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Music, DollarSign, TrendingUp, Wallet, ShoppingBag, Package, Eye, ExternalLink, Settings } from 'lucide-react'
+import { Music, DollarSign, TrendingUp, Wallet, ShoppingBag, Package, Eye, ExternalLink, Settings, Share2, Copy, Twitter, Facebook, Linkedin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 
@@ -36,10 +36,43 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
   const [totalSales, setTotalSales] = useState(0)
   const [availableBalance, setAvailableBalance] = useState(0)
   const [pendingBalance, setPendingBalance] = useState(0)
+  const [showShareMenu, setShowShareMenu] = useState<string | null>(null)
 
   useEffect(() => {
     fetchStorefrontData()
   }, [userId])
+
+  const getShareUrl = (serviceId: string) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${baseUrl}/marketplace/play/${serviceId}`
+  }
+
+  const handleShare = (service: ListedService, platform: string) => {
+    const shareUrl = getShareUrl(service.id)
+    const text = `Check out "${service.title}" on NoCulture OS - $${service.price.toFixed(2)}`
+    
+    let url = ''
+    switch (platform) {
+      case 'twitter':
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`
+        break
+      case 'facebook':
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+        break
+      case 'linkedin':
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+        break
+      case 'copy':
+        navigator.clipboard.writeText(shareUrl)
+        setShowShareMenu(null)
+        return
+    }
+    
+    if (url) {
+      window.open(url, '_blank', 'width=600,height=400')
+      setShowShareMenu(null)
+    }
+  }
 
   const fetchStorefrontData = async () => {
     try {
@@ -270,11 +303,13 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
             {listedServices.slice(0, 5).map((service) => (
               <div
                 key={service.id}
-                className="p-3 border dark:border-green-400/20 border-green-600/30 dark:bg-black/30 bg-white/50 hover:dark:border-green-400/40 hover:border-green-600/50 transition-all cursor-pointer"
-                onClick={() => router.push(`/marketplace/play/${service.id}`)}
+                className="relative p-3 border dark:border-green-400/20 border-green-600/30 dark:bg-black/30 bg-white/50 hover:dark:border-green-400/40 hover:border-green-600/50 transition-all"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex-1">
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => router.push(`/marketplace/play/${service.id}`)}
+                  >
                     <div className="flex items-center gap-2 mb-1">
                       <Package className="h-3 w-3 dark:text-green-400/70 text-green-700/70" />
                       <span className="text-sm font-mono dark:text-green-400 text-green-700 font-bold">
@@ -293,8 +328,65 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
                       <span className="dark:text-yellow-400 text-yellow-600">${service.revenue.toFixed(2)}</span>
                     </div>
                   </div>
-                  <div className="text-lg font-mono font-bold dark:text-green-400 text-green-700">
-                    ${service.price.toFixed(2)}
+                  <div className="flex items-center gap-2">
+                    <div className="text-lg font-mono font-bold dark:text-green-400 text-green-700">
+                      ${service.price.toFixed(2)}
+                    </div>
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowShareMenu(showShareMenu === service.id ? null : service.id)
+                        }}
+                        className="p-1 hover:dark:bg-green-400/20 hover:bg-green-600/20 transition-colors"
+                      >
+                        <Share2 className="h-4 w-4 dark:text-green-400/70 text-green-700/70" />
+                      </button>
+                      {showShareMenu === service.id && (
+                        <div className="absolute right-0 top-full mt-1 z-10 dark:bg-black bg-white border-2 dark:border-green-400 border-green-600 p-2 min-w-[160px]">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleShare(service, 'copy')
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono dark:text-green-400 text-green-700 hover:dark:bg-green-400/10 hover:bg-green-600/10"
+                          >
+                            <Copy className="h-3 w-3" />
+                            COPY_LINK
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleShare(service, 'twitter')
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono dark:text-green-400 text-green-700 hover:dark:bg-green-400/10 hover:bg-green-600/10"
+                          >
+                            <Twitter className="h-3 w-3" />
+                            TWITTER
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleShare(service, 'facebook')
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono dark:text-green-400 text-green-700 hover:dark:bg-green-400/10 hover:bg-green-600/10"
+                          >
+                            <Facebook className="h-3 w-3" />
+                            FACEBOOK
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleShare(service, 'linkedin')
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono dark:text-green-400 text-green-700 hover:dark:bg-green-400/10 hover:bg-green-600/10"
+                          >
+                            <Linkedin className="h-3 w-3" />
+                            LINKEDIN
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
