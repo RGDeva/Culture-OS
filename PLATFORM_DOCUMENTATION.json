@@ -1,0 +1,547 @@
+{
+  "platform": {
+    "name": "NoCulture OS",
+    "version": "1.0.0",
+    "tagline": "Creative Operating System for Music Professionals",
+    "description": "A comprehensive platform for music creators to manage their creative assets, collaborate, sell services, and build their careers",
+    "target_audience": [
+      "Music Producers",
+      "Beat Makers",
+      "Audio Engineers",
+      "Artists",
+      "Songwriters",
+      "Studio Owners",
+      "Music Collaborators"
+    ]
+  },
+  "core_modules": {
+    "vault": {
+      "name": "Vault",
+      "purpose": "Secure storage and organization for creative assets",
+      "features": [
+        "Upload audio files (beats, stems, tracks, vocals)",
+        "Upload images (artwork, photos, designs)",
+        "File organization with folders",
+        "Drag-and-drop folder creation by hovering one file over another",
+        "Accurate file size tracking",
+        "Version control and tracking",
+        "Collaboration invites",
+        "Split tracking for royalties",
+        "Asset preview and playback",
+        "Quick access from dashboard",
+        "Social media sharing for individual assets",
+        "Status management (draft, for sale, private)"
+      ],
+      "file_types_supported": [
+        "Audio: MP3, WAV, FLAC, M4A, OGG",
+        "Images: JPG, PNG, GIF, WEBP, SVG",
+        "Documents: PDF, TXT"
+      ],
+      "integrations": [
+        "Marketplace (list assets for sale)",
+        "Dashboard (quick view of recent uploads)",
+        "Profile (showcase work)"
+      ]
+    },
+    "marketplace": {
+      "name": "Marketplace",
+      "purpose": "Buy and sell beats, services, and creative assets",
+      "features": [
+        "List beats for sale",
+        "List beat packs",
+        "Offer production services",
+        "Offer mixing/mastering services",
+        "Offer vocal services",
+        "Set custom pricing",
+        "Track views and engagement",
+        "Track sales and revenue",
+        "Instant payouts",
+        "Social media sharing for listings",
+        "Shareable links for each listing",
+        "Preview audio before purchase",
+        "License management",
+        "Automatic delivery after purchase"
+      ],
+      "listing_types": [
+        "BEAT - Individual beat/instrumental",
+        "PACK - Collection of beats or samples",
+        "SERVICE - Production, mixing, mastering, vocals",
+        "STEM - Individual stems or layers",
+        "SAMPLE - Sound samples and loops"
+      ],
+      "payment_features": [
+        "Instant USD payouts",
+        "Cryptocurrency support",
+        "Split payments for collaborations",
+        "Escrow for services",
+        "Refund management"
+      ]
+    },
+    "storefront": {
+      "name": "Storefront",
+      "purpose": "Personal modular storefront for each creator",
+      "features": [
+        "Customizable layout",
+        "Display all services for sale",
+        "Display all beats for sale",
+        "Show platform sales breakdown (Spotify, Apple Music, etc.)",
+        "Real-time earnings tracking",
+        "Available and pending balance display",
+        "Social media sharing for entire storefront",
+        "Individual item sharing",
+        "View count tracking",
+        "Sales analytics",
+        "Revenue reporting",
+        "Embeddable storefront widget"
+      ],
+      "customization_options": [
+        "Banner image",
+        "Profile picture",
+        "Bio and description",
+        "Featured items",
+        "Color scheme",
+        "Layout preferences",
+        "Social links"
+      ]
+    },
+    "network": {
+      "name": "Network",
+      "purpose": "Connect with other music professionals",
+      "features": [
+        "Discover artists and producers",
+        "Find collaborators by role",
+        "Search by location",
+        "Search by genre",
+        "View creator profiles",
+        "Direct messaging",
+        "Collaboration requests",
+        "Follow system",
+        "Activity feed",
+        "Recommendations based on activity"
+      ],
+      "user_roles": [
+        "Producer",
+        "Beat Maker",
+        "Engineer",
+        "Artist",
+        "Songwriter",
+        "Vocalist",
+        "Mixer",
+        "Mastering Engineer",
+        "Studio Owner"
+      ]
+    },
+    "bounties": {
+      "name": "Bounties",
+      "purpose": "Post and fulfill creative job requests",
+      "features": [
+        "Post production requests",
+        "Post mixing/mastering jobs",
+        "Post vocal requests",
+        "Set bounty amount",
+        "Deadline management",
+        "Application system",
+        "Escrow payments",
+        "Milestone tracking",
+        "Delivery confirmation",
+        "Rating and review system"
+      ]
+    },
+    "earnings": {
+      "name": "Earnings & Analytics",
+      "purpose": "Track income and financial metrics",
+      "features": [
+        "Total revenue tracking",
+        "Platform-specific earnings (Spotify, Apple Music, marketplace)",
+        "Sales breakdown by item",
+        "Monthly/yearly reports",
+        "Payout history",
+        "Available balance",
+        "Pending balance",
+        "Tax documentation",
+        "Export financial data",
+        "Recoupable integration",
+        "Royalty split tracking"
+      ]
+    },
+    "profile": {
+      "name": "Profile & Portfolio",
+      "purpose": "Showcase work and build professional presence",
+      "features": [
+        "Display name and username",
+        "Profile picture",
+        "Banner image",
+        "Bio and description",
+        "Location (city) display",
+        "Primary role badge",
+        "XP and tier system",
+        "Profile completion percentage",
+        "Connected platforms (Spotify, Apple Music, SoundCloud)",
+        "Muso.ai credits integration",
+        "Services for sale showcase",
+        "Portfolio of work",
+        "Social media links",
+        "Shareable profile URL",
+        "Auto-import from Spotify (profile picture, banner)",
+        "Custom storefront link"
+      ],
+      "spotify_integration": {
+        "auto_import": [
+          "Profile picture from Spotify artist profile",
+          "Banner image from Spotify artist profile",
+          "Artist name",
+          "Follower count",
+          "Top tracks",
+          "Monthly listeners"
+        ],
+        "editable": true,
+        "sync_frequency": "On-demand or automatic"
+      }
+    }
+  },
+  "dashboard": {
+    "layout": "Whop-style three-panel layout",
+    "panels": {
+      "left_sidebar": {
+        "width": "256px (collapsible)",
+        "contents": [
+          "Platform logo and version",
+          "User profile card (avatar, name, XP)",
+          "Navigation menu (Dashboard, Vault, Marketplace, Network, Bounties, Earnings, Profile, Settings)",
+          "Quick upload button"
+        ],
+        "features": [
+          "Collapsible",
+          "Active state highlighting",
+          "Icon + label navigation"
+        ]
+      },
+      "middle_content": {
+        "width": "Flexible (takes remaining space)",
+        "contents": [
+          "Top bar (menu toggle, page title, notifications, search)",
+          "Stats grid (Projects, Collabs, Earnings, XP)",
+          "Vault Quick Access (6 most recent assets)",
+          "Storefront panel (sales, revenue, listings)",
+          "Quick Actions grid"
+        ],
+        "features": [
+          "Scrollable content area",
+          "Responsive grid layouts",
+          "Real-time data updates"
+        ]
+      },
+      "right_navigation": {
+        "type": "Hamburger menu (already implemented)",
+        "contents": [
+          "User menu",
+          "Settings",
+          "Logout",
+          "Additional navigation"
+        ]
+      }
+    },
+    "key_metrics": [
+      "Open Projects (vault assets count)",
+      "Active Collabs (collaboration count)",
+      "Earnings This Month (USD)",
+      "Total XP (experience points)"
+    ]
+  },
+  "user_experience": {
+    "design_principles": [
+      "Simple - Easy to understand and use",
+      "Smart - Intelligent automation and suggestions",
+      "Cohesive - Everything connects seamlessly",
+      "Sticky - Users want to return and engage",
+      "Fast - Quick loading and responsive"
+    ],
+    "navigation_flow": {
+      "dashboard": "Central hub - see everything at a glance",
+      "vault": "Upload and organize files easily",
+      "marketplace": "Browse and purchase instantly",
+      "storefront": "Personal shop for each creator",
+      "profile": "Professional portfolio and presence"
+    },
+    "key_interactions": [
+      "One-click upload from dashboard",
+      "Drag-and-drop file organization",
+      "Quick share to social media",
+      "Instant asset preview",
+      "Seamless navigation between modules"
+    ]
+  },
+  "social_features": {
+    "sharing": {
+      "platforms": ["Twitter", "Facebook", "LinkedIn"],
+      "shareable_items": [
+        "Individual vault assets",
+        "Marketplace listings",
+        "Beat packs",
+        "Services",
+        "Entire storefront",
+        "Profile"
+      ],
+      "share_formats": [
+        "Direct link copy",
+        "Social media post with preview",
+        "Embeddable widget"
+      ]
+    },
+    "collaboration": {
+      "features": [
+        "Invite collaborators to projects",
+        "Split tracking and management",
+        "Real-time collaboration",
+        "Version control",
+        "Comment and feedback system"
+      ]
+    }
+  },
+  "monetization": {
+    "revenue_streams": [
+      "Marketplace sales (beats, packs, services)",
+      "Platform streaming royalties (Spotify, Apple Music)",
+      "Bounty completions",
+      "Collaboration splits",
+      "Tip system"
+    ],
+    "payment_methods": [
+      "USD (instant payout)",
+      "Cryptocurrency (Base chain)",
+      "Stablecoin (USDC)"
+    ],
+    "pricing_models": [
+      "Pay to download",
+      "Free with referral",
+      "Collaboration split",
+      "Bounty-based",
+      "Subscription (future)"
+    ]
+  },
+  "gamification": {
+    "xp_system": {
+      "earn_xp_by": [
+        "Uploading assets",
+        "Making sales",
+        "Completing bounties",
+        "Collaborating",
+        "Profile completion",
+        "Platform engagement"
+      ],
+      "tiers": [
+        "ROOKIE (0-999 XP)",
+        "RISING (1000-4999 XP)",
+        "PRO (5000-9999 XP)",
+        "ELITE (10000+ XP)"
+      ]
+    },
+    "achievements": [
+      "First upload",
+      "First sale",
+      "100 sales milestone",
+      "Profile 100% complete",
+      "10 collaborations",
+      "Top seller badge"
+    ]
+  },
+  "integrations": {
+    "music_platforms": {
+      "spotify": {
+        "features": [
+          "Link Spotify artist profile",
+          "Auto-import profile picture",
+          "Auto-import banner image",
+          "Display top tracks",
+          "Show monthly listeners",
+          "Track streaming revenue"
+        ],
+        "api": "Spotify Web API"
+      },
+      "apple_music": {
+        "features": [
+          "Link Apple Music artist profile",
+          "Display catalog",
+          "Track streaming revenue"
+        ],
+        "api": "Apple Music API"
+      },
+      "soundcloud": {
+        "features": [
+          "Link SoundCloud profile",
+          "Display tracks",
+          "Embed player"
+        ]
+      }
+    },
+    "tools": {
+      "muso_ai": {
+        "purpose": "Music credits verification",
+        "features": [
+          "Search for credits",
+          "Verify contributions",
+          "Display on profile",
+          "Build credibility"
+        ]
+      },
+      "recoupable": {
+        "purpose": "Financial tracking",
+        "features": [
+          "Recoupable data integration",
+          "Advance tracking",
+          "Royalty calculations"
+        ]
+      },
+      "cyanite": {
+        "purpose": "AI music analysis",
+        "features": [
+          "Genre detection",
+          "Mood analysis",
+          "BPM detection",
+          "Key detection",
+          "Auto-tagging"
+        ]
+      }
+    }
+  },
+  "technical_stack": {
+    "frontend": {
+      "framework": "Next.js 13.5.7 (App Router)",
+      "language": "TypeScript",
+      "styling": "Tailwind CSS",
+      "ui_components": "shadcn/ui",
+      "icons": "Lucide React",
+      "state_management": "React Hooks",
+      "authentication": "Privy.io"
+    },
+    "backend": {
+      "api": "Next.js API Routes",
+      "database": "Supabase (PostgreSQL)",
+      "orm": "Prisma",
+      "storage": "Supabase Storage",
+      "python_worker": "FastAPI (for music analysis)"
+    },
+    "blockchain": {
+      "chain": "Base (Ethereum L2)",
+      "wallet": "Privy embedded wallets",
+      "payments": "Cryptocurrency support"
+    }
+  },
+  "file_structure": {
+    "key_directories": {
+      "/app": "Next.js app router pages",
+      "/components": "React components",
+      "/components/dashboard": "Dashboard-specific components",
+      "/components/home": "Homepage and dashboard layouts",
+      "/components/ui": "Reusable UI components",
+      "/lib": "Utility functions and helpers",
+      "/types": "TypeScript type definitions",
+      "/contexts": "React context providers",
+      "/hooks": "Custom React hooks",
+      "/python-worker": "FastAPI backend for music analysis"
+    },
+    "key_files": {
+      "/app/page.tsx": "Homepage with Whop-style dashboard",
+      "/app/vault/page.tsx": "Vault file management",
+      "/app/marketplace/page.tsx": "Marketplace browsing",
+      "/app/profile/view/page.tsx": "Public profile view",
+      "/components/home/WhopStyleDashboard.tsx": "Main dashboard layout",
+      "/components/dashboard/VaultQuickView.tsx": "Vault quick access widget",
+      "/components/dashboard/EnhancedStorefront.tsx": "Storefront panel with sales tracking"
+    }
+  },
+  "current_features_status": {
+    "implemented": [
+      "Whop-style three-panel dashboard layout",
+      "Vault file upload and organization",
+      "Drag-and-drop folder creation",
+      "Accurate file size tracking",
+      "Marketplace listing and browsing",
+      "Social media sharing (Twitter, Facebook, LinkedIn, Copy Link)",
+      "Vault quick access on dashboard",
+      "Enhanced storefront with real sales tracking",
+      "Profile with city/location display",
+      "Services for sale on profile",
+      "Platform sales breakdown",
+      "XP and tier system",
+      "Connected platforms display",
+      "Muso.ai credits integration"
+    ],
+    "in_progress": [
+      "Spotify auto-import (profile picture and banner)",
+      "Storefront customization page",
+      "Advanced analytics dashboard"
+    ],
+    "planned": [
+      "Apple Music data visualization",
+      "Real-time collaboration features",
+      "Advanced bounty system",
+      "Subscription tiers",
+      "Mobile app",
+      "API for third-party integrations"
+    ]
+  },
+  "user_flows": {
+    "new_user_onboarding": [
+      "1. Land on homepage",
+      "2. Click INITIATE_PROTOCOL",
+      "3. Sign up with email/social",
+      "4. Complete profile setup (name, role, location)",
+      "5. Connect Spotify (optional - auto-imports profile picture)",
+      "6. Upload first asset to vault",
+      "7. Explore marketplace",
+      "8. Create first listing"
+    ],
+    "upload_and_sell": [
+      "1. Click UPLOAD from dashboard or vault",
+      "2. Drag and drop audio file",
+      "3. Add title, description, cover art",
+      "4. Set price and access type",
+      "5. Publish to marketplace",
+      "6. Share on social media",
+      "7. Track views and sales"
+    ],
+    "collaboration": [
+      "1. Upload work-in-progress to vault",
+      "2. Invite collaborator by email/username",
+      "3. Set split percentages",
+      "4. Collaborator receives notification",
+      "5. Both parties work on project",
+      "6. Track versions and changes",
+      "7. Finalize and publish"
+    ]
+  },
+  "competitive_advantages": [
+    "All-in-one platform (no need for multiple tools)",
+    "Instant payouts (no waiting periods)",
+    "Blockchain-based transparency",
+    "Fair split tracking",
+    "Social media integration",
+    "AI-powered music analysis",
+    "Verified credits system",
+    "Community-driven marketplace",
+    "No platform fees on direct sales",
+    "Modular and customizable storefront"
+  ],
+  "future_enhancements": [
+    "AI-powered beat matching",
+    "Automatic genre and mood tagging",
+    "Smart collaboration suggestions",
+    "Advanced analytics and insights",
+    "Mobile app (iOS and Android)",
+    "Plugin for DAWs (Ableton, FL Studio, Logic)",
+    "Live streaming integration",
+    "NFT minting for exclusive releases",
+    "Fan engagement tools",
+    "Crowdfunding for projects",
+    "Educational content and courses",
+    "Virtual studio sessions"
+  ],
+  "support_and_documentation": {
+    "help_center": "In-app help documentation",
+    "video_tutorials": "YouTube channel with guides",
+    "community_forum": "Discord server for support",
+    "email_support": "support@noculture.io",
+    "faq": "Comprehensive FAQ section"
+  }
+}

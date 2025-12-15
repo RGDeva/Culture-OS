@@ -37,7 +37,7 @@ const DashboardSnapshot = dynamic(() => import("@/components/home/DashboardSnaps
   ssr: false,
   loading: () => <LoadingBox />
 })
-const HomeDashboard = dynamic(() => import("@/components/home/HomeDashboard").then(mod => ({ default: mod.HomeDashboard })), { 
+const WhopStyleDashboard = dynamic(() => import("@/components/home/WhopStyleDashboard").then(mod => ({ default: mod.WhopStyleDashboard })), { 
   ssr: false,
   loading: () => <LoadingBox />
 })
@@ -219,7 +219,7 @@ export default function HomePage() {
                 </div>
               </div>
             ) : (
-              <HomeDashboard userId={user.id} profile={profile} />
+              <WhopStyleDashboard userId={user.id} profile={profile} />
             )}
           </div>
         ) : null}
