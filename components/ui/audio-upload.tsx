@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
 
 interface AudioUploadProps {
-  onUpload: (url: string) => void
+  onUpload: (url: string, fileSize?: number, fileName?: string) => void
 }
 
 export default function AudioUpload({ onUpload }: AudioUploadProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fileSize, setFileSize] = useState<number | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -27,10 +29,12 @@ export default function AudioUpload({ onUpload }: AudioUploadProps) {
       setUploading(true)
       const preview = URL.createObjectURL(file)
       setPreviewUrl(preview)
+      setFileSize(file.size)
+      setFileName(file.name)
 
       // TODO: Implement actual file upload to Supabase storage
       // For now, we'll just use the preview URL
-      onUpload(preview)
+      onUpload(preview, file.size, file.name)
     } catch (error) {
       setError('Error uploading audio')
       console.error('Error uploading audio:', error)
@@ -43,8 +47,14 @@ export default function AudioUpload({ onUpload }: AudioUploadProps) {
     <div className="space-y-4">
       <div className="relative aspect-square w-full bg-black/80 border-2 border-dashed border-green-400/50 rounded-lg overflow-hidden">
         {previewUrl ? (
-          <div className="flex flex-col items-center justify-center h-full text-green-400">
-            <div className="text-2xl">Audio Preview</div>
+          <div className="flex flex-col items-center justify-center h-full text-green-400 p-4">
+            <div className="text-2xl mb-2">Audio Preview</div>
+            {fileName && <div className="text-sm mb-1">{fileName}</div>}
+            {fileSize && (
+              <div className="text-xs text-green-400/70 mb-4">
+                Size: {(fileSize / 1024 / 1024).toFixed(2)} MB
+              </div>
+            )}
             <audio
               src={previewUrl}
               controls

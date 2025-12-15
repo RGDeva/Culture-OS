@@ -19,6 +19,8 @@ interface AssetFormData {
   description: string
   audioUrl: string
   imageUrl: string
+  fileSize?: number
+  fileName?: string
 }
 
 export default function UploadPage() {
@@ -50,13 +52,19 @@ export default function UploadPage() {
     { id: "bounty", label: "BOUNTY" }
   ]
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleAudioUpload = async (url: string) => {
-    setFormData((prev) => ({ ...prev, audioUrl: url }))
+  const handleAudioUpload = async (url: string, fileSize?: number, fileName?: string) => {
+    setFormData((prev) => ({ 
+      ...prev, 
+      audioUrl: url,
+      fileSize: fileSize,
+      fileName: fileName,
+      title: prev.title || fileName?.replace(/\.[^/.]+$/, '') || '' // Auto-fill title from filename if empty
+    }))
   }
 
   const handleImageUpload = async (url: string) => {
