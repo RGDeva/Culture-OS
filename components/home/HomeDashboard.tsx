@@ -20,7 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Profile } from '@/types/profile'
 import { PlatformLinkingModal } from './PlatformLinkingModal'
-import { CatalogEarningsPanel } from '@/components/dashboard/CatalogEarningsPanel'
+import { EnhancedStorefront } from '@/components/dashboard/EnhancedStorefront'
 
 interface HomeDashboardProps {
   userId: string
@@ -320,8 +320,8 @@ export function HomeDashboard({ userId, profile }: HomeDashboardProps) {
         </div>
       </div>
 
-      {/* Catalog & Earnings Panel */}
-      <CatalogEarningsPanel userId={userId} />
+      {/* Enhanced Storefront Panel */}
+      <EnhancedStorefront userId={userId} />
 
       {/* Quick Actions */}
       <div className="border-2 dark:border-green-400/30 border-green-600/40 p-6 dark:bg-black/50 bg-white/80">
