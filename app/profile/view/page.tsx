@@ -13,7 +13,11 @@ import {
   Edit2,
   ExternalLink,
   Plus,
-  X
+  X,
+  ShoppingBag,
+  DollarSign,
+  Eye,
+  Package
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Profile } from '@/types/profile'
@@ -32,6 +36,8 @@ export default function ProfileViewPage() {
   const [musoSearchQuery, setMusoSearchQuery] = useState('')
   const [musoSearchResults, setMusoSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
+  const [servicesForSale, setServicesForSale] = useState<any[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
 
   // Get userId from URL params or use current user
   const viewingUserId = searchParams?.get('userId') || user?.id
@@ -39,6 +45,7 @@ export default function ProfileViewPage() {
   useEffect(() => {
     if (authenticated && viewingUserId) {
       loadProfile()
+      loadServicesForSale()
       setIsOwnProfile(viewingUserId === user?.id)
     }
   }, [authenticated, viewingUserId, user?.id])
@@ -55,6 +62,56 @@ export default function ProfileViewPage() {
       console.error('Error loading profile:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadServicesForSale = async () => {
+    try {
+      setLoadingServices(true)
+      // Fetch marketplace listings
+      const listingsRes = await fetch(`/api/marketplace/listings?userId=${viewingUserId}`).catch(() => null)
+      // Fetch vault assets for sale
+      const vaultRes = await fetch(`/api/vault/assets?ownerId=${viewingUserId}&status=FOR_SALE`).catch(() => null)
+      
+      let services: any[] = []
+      
+      if (listingsRes && listingsRes.ok) {
+        const data = await listingsRes.json()
+        if (data.listings) {
+          services = [...services, ...data.listings.map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            type: item.type || 'BEAT',
+            price: item.price || 0,
+            views: item.views || 0,
+            sales: item.sales || 0,
+            description: item.description,
+            imageUrl: item.imageUrl
+          }))]
+        }
+      }
+      
+      if (vaultRes && vaultRes.ok) {
+        const data = await vaultRes.json()
+        if (data.assets) {
+          services = [...services, ...data.assets.map((asset: any) => ({
+            id: asset.id,
+            title: asset.title,
+            type: asset.assetType || 'BEAT',
+            price: asset.price || 0,
+            views: asset.plays || 0,
+            sales: 0,
+            description: asset.description,
+            imageUrl: asset.coverArt
+          }))]
+        }
+      }
+      
+      setServicesForSale(services)
+    } catch (error) {
+      console.error('Error loading services:', error)
+    } finally {
+      setLoadingServices(false)
     }
   }
 
@@ -343,6 +400,92 @@ export default function ProfileViewPage() {
               </a>
             )}
           </div>
+        </div>
+
+        {/* Services For Sale */}
+        <div className="border-2 dark:border-green-400/30 border-green-600/40 p-6 dark:bg-black/50 bg-white/80 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 dark:text-green-400 text-green-700" />
+              <h3 className="text-lg font-bold font-mono dark:text-green-400 text-green-700">
+                &gt; SERVICES_FOR_SALE
+              </h3>
+            </div>
+            {isOwnProfile && (
+              <Button
+                onClick={() => router.push('/marketplace/upload')}
+                size="sm"
+                className="dark:bg-green-400 bg-green-600 dark:text-black text-white font-mono"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                ADD_LISTING
+              </Button>
+            )}
+          </div>
+
+          {loadingServices ? (
+            <div className="text-center py-8 text-sm font-mono dark:text-green-400/50 text-green-700/60 animate-pulse">
+              LOADING_SERVICES...
+            </div>
+          ) : servicesForSale.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {servicesForSale.map((service) => (
+                <div
+                  key={service.id}
+                  className="p-4 border dark:border-green-400/20 border-green-600/30 hover:dark:border-green-400 hover:border-green-600 transition-all cursor-pointer"
+                  onClick={() => router.push(`/marketplace/play/${service.id}`)}
+                >
+                  <div className="flex items-start gap-3">
+                    {service.imageUrl ? (
+                      <img
+                        src={service.imageUrl}
+                        alt={service.title}
+                        className="w-16 h-16 object-cover border dark:border-green-400/30 border-green-600/40"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 border dark:border-green-400/30 border-green-600/40 dark:bg-green-400/5 bg-green-600/5 flex items-center justify-center">
+                        <Package className="h-8 w-8 dark:text-green-400/50 text-green-700/50" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-mono dark:text-green-400 text-green-700 font-bold">
+                          {service.title}
+                        </span>
+                        <span className="text-xs font-mono dark:text-green-400/50 text-green-700/60">
+                          {service.type}
+                        </span>
+                      </div>
+                      {service.description && (
+                        <p className="text-xs font-mono dark:text-green-400/60 text-green-700/70 mb-2 line-clamp-2">
+                          {service.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-xs font-mono dark:text-green-400/60 text-green-700/70">
+                          <span className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            {service.views}
+                          </span>
+                          {service.sales > 0 && (
+                            <span>{service.sales} sales</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-lg font-mono font-bold dark:text-yellow-400 text-yellow-600">
+                          <DollarSign className="h-4 w-4" />
+                          {service.price.toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-sm font-mono dark:text-green-400/50 text-green-700/60">
+              {isOwnProfile ? 'No services listed yet. Start selling your beats and services.' : 'No services available for sale.'}
+            </div>
+          )}
         </div>
 
         {/* Muso AI Credits */}
