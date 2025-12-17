@@ -2,7 +2,7 @@
 
 import { usePrivy } from '@privy-io/react-auth'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, DollarSign, TrendingUp, Wallet } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Wallet, Target } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { EarningsCard } from '@/components/payments/EarningsCard'
@@ -17,6 +17,31 @@ export default function EarningsPage() {
   const privyHook = usePrivy()
   const { authenticated, login, user } = privyHook || {}
   const [syncing, setSyncing] = useState(false)
+  const [showFundModal, setShowFundModal] = useState(false)
+  const [bountyEarnings, setBountyEarnings] = useState<any>(null)
+  const [loadingBounties, setLoadingBounties] = useState(true)
+
+  useEffect(() => {
+    if (user?.id) {
+      loadBountyEarnings()
+    }
+  }, [user?.id])
+
+  const loadBountyEarnings = async () => {
+    if (!user?.id) return
+    try {
+      setLoadingBounties(true)
+      const response = await fetch(`/api/bounties/me?userId=${user.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setBountyEarnings(data.summary?.earnings || null)
+      }
+    } catch (error) {
+      console.error('[EARNINGS] Error loading bounty earnings:', error)
+    } finally {
+      setLoadingBounties(false)
+    }
+  }
 
   if (!authenticated) {
     return (
@@ -65,6 +90,65 @@ export default function EarningsPage() {
             <PaymentHistory userId={user.id} limit={20} />
           </div>
         )}
+
+        {/* Bounties Earnings Section */}
+        <div className="border-2 border-green-400 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Target className="h-6 w-6 text-green-400" />
+              <h2 className="text-xl">&gt; BOUNTY_EARNINGS</h2>
+            </div>
+            <Link href="/bounties">
+              <Button 
+                variant="outline"
+                className="border-green-400 text-green-400 font-mono"
+              >
+                VIEW_BOUNTIES
+              </Button>
+            </Link>
+          </div>
+          
+          {loadingBounties ? (
+            <div className="text-green-400/60 text-sm">Loading bounty earnings...</div>
+          ) : bountyEarnings ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="border border-green-400/30 p-4 bg-green-400/5">
+                <div className="text-xs text-green-400/60 mb-1">TOTAL_EARNED</div>
+                <div className="text-2xl font-bold text-green-400">
+                  ${((bountyEarnings.totalCents || 0) / 100).toFixed(2)}
+                </div>
+              </div>
+              <div className="border border-yellow-400/30 p-4 bg-yellow-400/5">
+                <div className="text-xs text-yellow-400/60 mb-1">PENDING</div>
+                <div className="text-2xl font-bold text-yellow-400">
+                  ${((bountyEarnings.pendingCents || 0) / 100).toFixed(2)}
+                </div>
+              </div>
+              <div className="border border-cyan-400/30 p-4 bg-cyan-400/5">
+                <div className="text-xs text-cyan-400/60 mb-1">AVAILABLE</div>
+                <div className="text-2xl font-bold text-cyan-400">
+                  ${((bountyEarnings.availableCents || 0) / 100).toFixed(2)}
+                </div>
+              </div>
+              <div className="border border-green-400/30 p-4 bg-green-400/5">
+                <div className="text-xs text-green-400/60 mb-1">PAID_OUT</div>
+                <div className="text-2xl font-bold text-green-400">
+                  ${((bountyEarnings.paidCents || 0) / 100).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 border border-green-400/30 bg-green-400/5">
+              <Target className="h-12 w-12 text-green-400/30 mx-auto mb-3" />
+              <p className="text-green-400/60 mb-4">No bounty earnings yet</p>
+              <Link href="/bounties">
+                <Button className="bg-green-400 text-black hover:bg-green-300 font-mono font-bold">
+                  EXPLORE_BOUNTIES
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
 
         {/* Wallet Actions */}
         <div className="border-2 border-green-400 p-6 mb-8">

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { HeroUIProvider } from './providers/HeroUIProvider';
 import { Toaster } from 'sonner';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { TopNav } from './layout/TopNav';
@@ -258,50 +259,51 @@ NEXTAUTH_URL="http://localhost:3001"`}
   }
 
   return (
-    <ThemeProvider>
-      {mounted ? (
-        <ErrorBoundary>
-          <PrivyProvider
-            appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
-            config={{
-              loginMethods: ['email', 'google', 'twitter', 'discord'],
-              appearance: {
-                theme: 'dark',
-                accentColor: '#10b981',
-                logo: '/logo.png',
-              },
-              embeddedWallets: {
-                createOnLogin: 'users-without-wallets',
-                noPromptOnSignature: true,
-              },
-              defaultChain: base,
-              supportedChains: [base],
-              // Disable external wallet connectors to prevent the error
-              externalWallets: {
-                coinbaseWallet: {
-                  connectionOptions: 'eoaOnly',
+    <HeroUIProvider>
+      <ThemeProvider>
+        {mounted ? (
+          <ErrorBoundary>
+            <PrivyProvider
+              appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
+              config={{
+                loginMethods: ['email', 'google', 'twitter', 'discord'],
+                appearance: {
+                  theme: 'dark',
+                  accentColor: '#3b82f6',
+                  logo: '/logo.png',
                 },
-              },
-            }}
-          >
-            <AuthProvider>
-              <div className="min-h-screen flex flex-col dark:bg-black bg-[#f7f7f7] dark:text-green-400 text-[#0d5c2e]">
-                <TopNav onMenuClick={() => setNavOpen(true)} />
-                <RightNav isOpen={navOpen} onClose={() => setNavOpen(false)} />
-                <main className="flex-1">{children}</main>
-                <Toaster richColors position="top-center" />
-                <SonnerToaster position="top-right" />
-                <EnvWarning />
-                {process.env.NODE_ENV === 'development' && <DiagnosticOverlay />}
-              </div>
-            </AuthProvider>
-          </PrivyProvider>
-        </ErrorBoundary>
-      ) : (
-        <div className="flex items-center justify-center min-h-screen dark:bg-black bg-white dark:text-green-400 text-gray-900">
-          <div className="animate-pulse font-mono text-xl">LOADING_NOCULTURE_OS...</div>
-        </div>
-      )}
-    </ThemeProvider>
+                embeddedWallets: {
+                  createOnLogin: 'users-without-wallets',
+                  noPromptOnSignature: true,
+                },
+                defaultChain: base,
+                supportedChains: [base],
+                externalWallets: {
+                  coinbaseWallet: {
+                    connectionOptions: 'eoaOnly',
+                  },
+                },
+              }}
+            >
+              <AuthProvider>
+                <div className="min-h-screen flex flex-col bg-black text-white">
+                  <TopNav onMenuClick={() => setNavOpen(true)} />
+                  <RightNav isOpen={navOpen} onClose={() => setNavOpen(false)} />
+                  <main className="flex-1">{children}</main>
+                  <Toaster richColors position="top-center" />
+                  <SonnerToaster position="top-right" />
+                  <EnvWarning />
+                  {process.env.NODE_ENV === 'development' && <DiagnosticOverlay />}
+                </div>
+              </AuthProvider>
+            </PrivyProvider>
+          </ErrorBoundary>
+        ) : (
+          <div className="flex items-center justify-center min-h-screen bg-black text-white">
+            <div className="animate-pulse font-mono text-xl">LOADING...</div>
+          </div>
+        )}
+      </ThemeProvider>
+    </HeroUIProvider>
   );
 }

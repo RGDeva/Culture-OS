@@ -26,6 +26,31 @@ declare global {
       'gmpx-place-picker': any
     }
   }
+  interface Window {
+    google: typeof google
+  }
+}
+
+// Google Maps type definitions
+declare const google: {
+  maps: {
+    LatLng: new (lat: number, lng: number) => any
+    Marker: new (options: any) => any
+    SymbolPath: {
+      CIRCLE: number
+    }
+    places: {
+      PlacesService: new (map: any) => {
+        nearbySearch: (
+          request: any,
+          callback: (results: any[] | null, status: any) => void
+        ) => void
+      }
+      PlacesServiceStatus: {
+        OK: string
+      }
+    }
+  }
 }
 
 const MASSACHUSETTS_CENTER = { lat: 42.3601, lng: -71.0589 }
@@ -109,9 +134,9 @@ export default function StudioMap() {
         keyword: 'recording studio music studio rehearsal space',
       }
 
-      service.nearbySearch(request, (results, status) => {
+      service.nearbySearch(request, (results: any[] | null, status: any) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          const foundStudios: Studio[] = results.map((place, index) => ({
+          const foundStudios: Studio[] = results.map((place: any, index: number) => ({
             id: place.place_id || `studio_${index}`,
             name: place.name || 'Unknown Studio',
             address: place.vicinity || '',

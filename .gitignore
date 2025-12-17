@@ -28,3 +28,6 @@ public/uploads/
 # typescript
 *.tsbuild.info
 next-env.d.ts
+# Local Netlify folder
+.netlify
+.env*.local

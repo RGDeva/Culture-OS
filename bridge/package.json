@@ -1,0 +1,34 @@
+{
+  "name": "@noculture/bridge",
+  "version": "1.0.0",
+  "description": "NoCulture Bridge - Auto-import FL Studio exports to Vault",
+  "main": "dist/index.js",
+  "bin": {
+    "noculture-bridge": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts"
+  },
+  "keywords": ["noculture", "fl-studio", "vault", "bridge"],
+  "author": "NoCulture",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "form-data": "^4.0.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/fluent-ffmpeg": "^2.1.24",
+    "typescript": "^5.3.2",
+    "ts-node": "^10.9.1"
+  }
+}

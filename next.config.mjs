@@ -8,8 +8,13 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['images.unsplash.com', 'source.unsplash.com'],
   },
   reactStrictMode: false,
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

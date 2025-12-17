@@ -8,7 +8,7 @@ import { UnlockSuccessModal } from "@/components/marketplace/UnlockSuccessModal"
 import { PaymentModal } from "@/components/marketplace/PaymentModal"
 import { ProductDetailModal } from "@/components/marketplace/ProductDetailModal"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
+import { Loader2, RefreshCw, Search, SlidersHorizontal, Target, DollarSign, Briefcase, Scissors, ExternalLink } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Zkp2pTopUpButton } from "@/components/payments/Zkp2pTopUpButton"
 import { TerminalText } from "@/components/ui/terminal-text"
@@ -21,6 +21,7 @@ const mockProducts: Product[] = [
     title: 'NEON_DREAMS_BEAT',
     description: 'Dark synthwave beat with heavy bass and atmospheric leads. Perfect for cyberpunk vibes.',
     type: 'BEAT',
+    category: 'ASSET',
     priceUSDC: 40,
     creatorName: 'XEN_PRODUCER',
     coverUrl: 'https://source.unsplash.com/random/400x400/?synthwave,neon',
@@ -31,6 +32,7 @@ const mockProducts: Product[] = [
     title: 'MIDNIGHT_VOCAL_KIT',
     description: 'Smooth R&B vocal samples with rich harmonies and professional processing.',
     type: 'KIT',
+    category: 'ASSET',
     priceUSDC: 60,
     creatorName: 'VOCAL_QUEEN',
     coverUrl: 'https://source.unsplash.com/random/400x400/?microphone,studio',
@@ -41,6 +43,7 @@ const mockProducts: Product[] = [
     title: 'MIXING_MASTERING_SERVICE',
     description: 'Professional mixing and mastering service. Get your tracks radio-ready.',
     type: 'SERVICE',
+    category: 'SERVICE',
     priceUSDC: 150,
     creatorName: 'AUDIO_ENGINEER_PRO',
     coverUrl: 'https://source.unsplash.com/random/400x400/?audio,mixing'
@@ -50,6 +53,7 @@ const mockProducts: Product[] = [
     title: 'EXCLUSIVE_DISCORD_ACCESS',
     description: 'Join our exclusive producer community with daily feedback sessions and networking.',
     type: 'ACCESS',
+    category: 'SERVICE',
     priceUSDC: 25,
     creatorName: 'NOCLTURE_NETWORK',
     coverUrl: 'https://source.unsplash.com/random/400x400/?community,network'
@@ -59,6 +63,7 @@ const mockProducts: Product[] = [
     title: 'TRAP_808_COLLECTION',
     description: 'Heavy-hitting 808 samples and bass presets for modern trap production.',
     type: 'KIT',
+    category: 'ASSET',
     priceUSDC: 35,
     creatorName: 'BASS_MASTER',
     coverUrl: 'https://source.unsplash.com/random/400x400/?bass,music',
@@ -69,6 +74,7 @@ const mockProducts: Product[] = [
     title: 'AMBIENT_SOUNDSCAPE_BEAT',
     description: 'Ethereal ambient beat with lush pads and organic textures.',
     type: 'BEAT',
+    category: 'ASSET',
     priceUSDC: 45,
     creatorName: 'ATMOSPHERE_CREATOR',
     coverUrl: 'https://source.unsplash.com/random/400x400/?ambient,space'
@@ -94,13 +100,11 @@ export default function MarketplacePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   
   // Filter state
-  const [activeTab, setActiveTab] = useState<'products' | 'bounties'>('products')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<ProductType | 'ALL'>('ALL')
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'ALL'>('ALL')
   const [sortBy, setSortBy] = useState<'newest' | 'price_low' | 'price_high' | 'popular'>('newest')
   const [showFilters, setShowFilters] = useState(true)
-  const [bounties, setBounties] = useState<any[]>([])
 
   // Fetch products with filters
   const fetchProducts = async () => {
@@ -295,27 +299,19 @@ export default function MarketplacePage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 border-b-2 border-green-400/30">
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`px-6 py-3 font-mono font-bold transition-all ${
-              activeTab === 'products'
-                ? 'bg-green-400 text-black'
-                : 'bg-black text-green-400 hover:bg-green-400/10'
-            }`}
-          >
+        <div className="flex gap-2 border-b-2 border-green-400/30 items-center">
+          <div className="px-6 py-3 font-mono font-bold bg-green-400 text-black">
             PRODUCTS
-          </button>
-          <button
-            onClick={() => setActiveTab('bounties')}
-            className={`px-6 py-3 font-mono font-bold transition-all ${
-              activeTab === 'bounties'
-                ? 'bg-green-400 text-black'
-                : 'bg-black text-green-400 hover:bg-green-400/10'
-            }`}
+          </div>
+          
+          {/* Link to Earn page */}
+          <a
+            href="/earn"
+            className="ml-auto px-6 py-3 font-mono font-bold transition-all bg-cyan-400/10 text-cyan-400 border border-cyan-400/30 hover:bg-cyan-400/20 hover:border-cyan-400 flex items-center gap-2"
           >
-            BOUNTIES
-          </button>
+            <DollarSign className="h-4 w-4" />
+            EARN_WITH_CAMPAIGNS →
+          </a>
         </div>
 
         {/* Filters */}
@@ -414,50 +410,35 @@ export default function MarketplacePage() {
           )}
         </div>
 
-        {/* Content - Products or Bounties */}
-        {activeTab === 'products' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {showSkeleton ? (
-              <>
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </>
-            ) : (
-              products.map((product) => (
-                <div
-                  key={product.id}
-                  onClick={() => {
-                    setSelectedProduct(product)
-                    setShowDetailModal(true)
-                  }}
-                  className="cursor-pointer"
-                >
-                  <ProductCard
-                    product={product}
-                    onUnlock={handleUnlock}
-                    onPreview={handlePreview}
-                    isProcessing={processingProductId === product.id}
-                    error={productErrors[product.id]}
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-center py-12 border-2 border-green-400/30 dark:border-green-400/30 light:border-green-600/30">
-              <h3 className="text-xl font-mono text-green-400 dark:text-green-400 light:text-green-600 mb-2">VIEW_BOUNTIES</h3>
-              <p className="text-green-400/60 dark:text-green-400/60 light:text-green-600/60 font-mono mb-4">Browse and apply to open collaborations</p>
-              <a 
-                href="/network?tab=bounties" 
-                className="inline-block px-6 py-3 bg-green-400 dark:bg-green-400 light:bg-green-600 text-black font-mono hover:bg-green-300 transition-all border-2 border-green-400 dark:border-green-400 light:border-green-600"
+        {/* Products Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {showSkeleton ? (
+            <>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </>
+          ) : (
+            products.map((product) => (
+              <div
+                key={product.id}
+                onClick={() => {
+                  setSelectedProduct(product)
+                  setShowDetailModal(true)
+                }}
+                className="cursor-pointer"
               >
-                &gt; GO_TO_BOUNTIES
-              </a>
-            </div>
-          </div>
-        )}
+                <ProductCard
+                  product={product}
+                  onUnlock={handleUnlock}
+                  onPreview={handlePreview}
+                  isProcessing={processingProductId === product.id}
+                  error={productErrors[product.id]}
+                />
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Product Detail Modal */}

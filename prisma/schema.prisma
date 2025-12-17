@@ -11,7 +11,7 @@ datasource db {
 }
 
 model User {
-  id              String   @id
+  id              String   @id  // Privy user ID
   email           String?  @unique
   walletAddress   String?  @unique
   displayName     String
@@ -29,6 +29,10 @@ model User {
   balances             Balance[]
   advanceAgreements    AdvanceAgreement[]
   payoutPreference     PayoutPreference?
+  
+  // x402 Entitlements
+  entitlements         Entitlement[]
+  x402Transactions     X402Transaction[]
   
   @@index([email], name: "user_email_idx")
   @@index([walletAddress], name: "user_wallet_address_idx")
@@ -272,4 +276,529 @@ model AssetAnalysis {
   
   @@index([assetId])
   @@index([status])
+}
+
+// Bounties System Models
+model BountyCampaign {
+  id              String    @id @default(cuid())
+  creatorId       String
+  type            String    // VIEW or CONVERSION
+  title           String
+  description     String?
+  budgetCents     Int
+  rulesJson       String    @default("{}") // JSON for payout tiers, multipliers, etc.
+  startAt         DateTime?
+  endAt           DateTime?
+  status          String    @default("DRAFT") // DRAFT, ACTIVE, ENDED, CANCELLED
+  
+  assetLinks      BountyAssetLink[]
+  participants    BountyParticipant[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([creatorId])
+  @@index([status])
+  @@index([type])
+}
+
+model BountyAssetLink {
+  id                String          @id @default(cuid())
+  campaignId        String
+  campaign          BountyCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  assetId           String?         // Link to Asset (Vault)
+  listingId         String?         // Link to Marketplace Listing (if exists)
+  showMetadataJson  String?         // Optional: venue, city, date, geofence data
+  
+  createdAt         DateTime        @default(now())
+  
+  @@index([campaignId])
+  @@index([assetId])
+  @@index([listingId])
+}
+
+model BountyParticipant {
+  id            String              @id @default(cuid())
+  campaignId    String
+  campaign      BountyCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  userId        String
+  referralCode  String              @unique
+  referralUrl   String?
+  joinedAt      DateTime            @default(now())
+  status        String              @default("ACTIVE") // ACTIVE, SUSPENDED, BANNED
+  
+  submissions   BountySubmission[]
+  earnings      BountyEarning[]
+  
+  @@unique([campaignId, userId])
+  @@index([campaignId])
+  @@index([userId])
+  @@index([referralCode])
+}
+
+model BountySubmission {
+  id              String              @id @default(cuid())
+  participantId   String
+  participant     BountyParticipant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  
+  postUrl         String
+  platform        String              // TIKTOK, INSTAGRAM, YOUTUBE, TWITTER, etc.
+  submittedAt     DateTime            @default(now())
+  lastCheckedAt   DateTime?
+  metricsJson     String              @default("{}") // { views, likes, comments, shares }
+  status          String              @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?
+  
+  @@index([participantId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+model BountyEarning {
+  id              String              @id @default(cuid())
+  participantId   String
+  participant     BountyParticipant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  
+  amountCents     Int
+  reason          String              // VIEW_MILESTONE, CONVERSION, BONUS, etc.
+  reasonDataJson  String?             // Additional context (views reached, sale ID, etc.)
+  status          String              @default("PENDING") // PENDING, AVAILABLE, PAID
+  
+  createdAt       DateTime            @default(now())
+  paidAt          DateTime?
+  
+  @@index([participantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================
+// EARN SYSTEM - Campaigns (Content Rewards, Opportunities, Affiliate)
+// ============================================
+
+model Campaign {
+  id              String    @id @default(cuid())
+  creatorId       String
+  title           String
+  description     String?
+  
+  // Campaign type: CONTENT_REWARDS (UGC/Clip-to-Earn), OPPORTUNITY (placements, gigs), AFFILIATE
+  campaignType    String    @default("CONTENT_REWARDS")
+  
+  // Status: UPCOMING, OPEN, CLOSED
+  status          String    @default("OPEN")
+  
+  // Budget and payout
+  budgetCents     Int       @default(0)
+  
+  // Payout type: PER_VIEWS, FIXED, LEADERBOARD, MILESTONE
+  payoutType      String    @default("PER_VIEWS")
+  
+  // JSON fields for flexible configuration
+  payoutRuleJson  String    @default("{}") // e.g., {"perThousandViews": 200, "bonus": "Top clip gets reposted"}
+  requirementsJson String   @default("{}") // e.g., {"platforms": ["TIKTOK", "INSTAGRAM"], "hashtags": ["#ad"], "minDuration": 15}
+  
+  // Timing
+  startAt         DateTime?
+  endAt           DateTime?
+  
+  // Featured flag for landing page
+  featured        Boolean   @default(false)
+  
+  // For affiliate campaigns - linked product/service
+  linkedProductId String?
+  commissionPct   Float?    // e.g., 0.15 for 15%
+  
+  // For opportunity campaigns
+  remoteOk        Boolean   @default(true)
+  location        String?
+  
+  // Metadata
+  imageUrl        String?
+  creatorName     String?   // Denormalized for display
+  
+  // Relations
+  assets          CampaignAsset[]
+  submissions     CampaignSubmission[]
+  payouts         CampaignPayoutLedger[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([creatorId])
+  @@index([campaignType])
+  @@index([status])
+  @@index([featured])
+}
+
+model CampaignAsset {
+  id              String    @id @default(cuid())
+  campaignId      String
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  title           String
+  assetType       String    @default("LINK") // AUDIO, IMAGE, VIDEO, DOC, LINK
+  url             String
+  description     String?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([campaignId])
+}
+
+model CampaignSubmission {
+  id              String    @id @default(cuid())
+  campaignId      String
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  
+  // Submission content
+  submissionUrl   String    // TikTok/IG Reels/YT Shorts link
+  originalMediaUrl String?  // Optional: uploaded mp4 or original file
+  platform        String    @default("TIKTOK") // TIKTOK, INSTAGRAM, YOUTUBE, X, OTHER
+  
+  // Metrics (manual entry for MVP)
+  reportedViews   Int       @default(0)
+  reportedLikes   Int       @default(0)
+  reportedShares  Int       @default(0)
+  
+  // Status: PENDING, APPROVED, REJECTED, PAID
+  status          String    @default("PENDING")
+  notes           String?
+  
+  // Payout tracking
+  payoutId        String?
+  estimatedEarningsCents Int @default(0)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([campaignId])
+  @@index([userId])
+  @@index([status])
+  @@index([reportedViews])
+}
+
+model CampaignPayoutLedger {
+  id              String    @id @default(cuid())
+  campaignId      String
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  submissionId    String?   // Nullable - could be bonus payout not tied to submission
+  userId          String
+  
+  amountCents     Int
+  currency        String    @default("USD")
+  
+  // Status: PENDING, SENT, FAILED
+  status          String    @default("PENDING")
+  
+  reason          String?   // e.g., "View milestone", "Affiliate commission", "Leaderboard bonus"
+  
+  createdAt       DateTime  @default(now())
+  paidAt          DateTime?
+  
+  @@index([campaignId])
+  @@index([userId])
+  @@index([status])
+}
+
+// Vault Integration Models
+model Integration {
+  id                    String    @id @default(cuid())
+  userId                String
+  organizationId        String?
+  
+  provider              String    // GOOGLE_DRIVE
+  
+  // Encrypted OAuth tokens
+  accessTokenEncrypted  String?
+  refreshTokenEncrypted String?
+  scope                 String?
+  expiresAt             DateTime?
+  
+  // Provider-specific config
+  email                 String?
+  
+  // Status
+  status                String    @default("ACTIVE") // ACTIVE, DISCONNECTED, ERROR
+  lastError             String?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  syncConfigs           DriveSyncConfig[]
+  importJobs            VaultImportJob[]
+  
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+}
+
+model DriveSyncConfig {
+  id              String       @id @default(cuid())
+  integrationId   String
+  integration     Integration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  projectId       String
+  driveFolderId   String
+  driveFolderName String?
+  
+  enabled         Boolean      @default(true)
+  lastCursor      String?      // Drive Changes API cursor
+  lastSyncAt      DateTime?
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@unique([integrationId, projectId])
+  @@index([userId])
+  @@index([projectId])
+  @@index([driveFolderId])
+}
+
+model VaultImportJob {
+  id              String    @id @default(cuid())
+  integrationId   String
+  integration     Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  
+  projectId       String?   // Optional: import into specific project
+  
+  // Job details
+  provider        String    // FL_STUDIO_BRIDGE, GOOGLE_DRIVE, DRIVE_AGENT
+  sourcePath      String?   // Local folder path or Drive folderId
+  
+  // Status: PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+  status          String    @default("PENDING")
+  
+  // Progress tracking
+  totalFiles      Int       @default(0)
+  processedFiles  Int       @default(0)
+  failedFiles     Int       @default(0)
+  
+  // Sync cursor for incremental imports (Drive Changes API)
+  syncCursor      String?
+  
+  // Error tracking
+  errorMessage    String?
+  errorDetails    String?   // JSON string with detailed errors
+  
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  assets          VaultAsset[]
+  
+  @@index([integrationId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model VaultAsset {
+  id                  String    @id @default(cuid())
+  
+  // Project/Version association
+  projectId           String
+  versionId           String
+  version             ProjectVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  
+  // Storage
+  storageKey          String    // S3/R2 key or local path
+  fileName            String
+  fileSize            Int       @default(0)
+  mimeType            String?
+  
+  // Source tracking
+  sourceProvider      String    // GOOGLE_DRIVE, FL_EXPORT, LOCAL_UPLOAD
+  sourceFileId        String?   // Drive file ID
+  sourceFileRevision  String?   // Drive revision/modifiedTime for dedup
+  sourceMetadata      String?   // JSON: original file metadata
+  
+  // Import job reference
+  importJobId         String?
+  importJob           VaultImportJob? @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  
+  // Audio metadata (extracted via ffprobe)
+  duration            Float?
+  sampleRate          Int?
+  bitrate             Int?
+  channels            Int?
+  format              String?
+  
+  // Additional metadata
+  metadata            String?   // JSON: tags, BPM, key, etc
+  
+  // x402 Payment fields
+  isPaid              Boolean   @default(false)
+  priceCents          Int?      // Price in cents
+  currency            String    @default("USDC")
+  receiverAddress     String    @default("0xf8998ef0dea767d7335907a75213F47A8f7152Df")
+  
+  // Relations
+  entitlements        Entitlement[]
+  x402Transactions    X402Transaction[]
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@unique([sourceProvider, sourceFileId, sourceFileRevision])
+  @@index([projectId])
+  @@index([versionId])
+  @@index([importJobId])
+  @@index([sourceProvider])
+  @@index([isPaid])
+}
+
+model ProjectVersion {
+  id              String    @id @default(cuid())
+  projectId       String
+  
+  label           String    // e.g., "v1.0", "FL Export 2024-12-15", "Drive Import"
+  description     String?
+  
+  // Source tracking
+  source          String    @default("MANUAL") // MANUAL, FL_EXPORT, GOOGLE_DRIVE, DRIVE_AGENT
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  assets          VaultAsset[]
+  
+  @@index([projectId])
+  @@index([source])
+}
+
+model BridgeDevice {
+  id              String    @id @default(cuid())
+  userId          String
+  
+  deviceToken     String    @unique // Secure token for Bridge authentication
+  deviceName      String?
+  
+  // Status
+  status          String    @default("ACTIVE") // ACTIVE, REVOKED
+  lastSeenAt      DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([deviceToken])
+}
+
+// Collaborator & Invitation Models
+model ProjectCollaborator {
+  id              String    @id @default(cuid())
+  projectId       String
+  userId          String
+  
+  // Role and permissions
+  role            String    @default("COLLABORATOR") // OWNER, ADMIN, COLLABORATOR, VIEWER
+  
+  // Contract splits (percentage)
+  splitPercentage Float?    @default(0)
+  
+  // Permissions
+  canEdit         Boolean   @default(true)
+  canInvite       Boolean   @default(false)
+  canManageSplits Boolean   @default(false)
+  
+  invitedBy       String?   // userId who invited
+  invitedAt       DateTime  @default(now())
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model CollaboratorInvitation {
+  id              String    @id @default(cuid())
+  projectId       String
+  
+  // Invitee info
+  email           String
+  invitedBy       String    // userId
+  
+  // Invitation details
+  role            String    @default("COLLABORATOR")
+  splitPercentage Float?    @default(0)
+  message         String?
+  
+  // Token for accepting invitation
+  token           String    @unique
+  
+  // Status
+  status          String    @default("PENDING") // PENDING, ACCEPTED, DECLINED, EXPIRED
+  
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([email])
+  @@index([token])
+  @@index([status])
+}
+
+// x402 Entitlement Model
+model Entitlement {
+  id              String    @id @default(cuid())
+  privyUserId     String
+  user            User      @relation(fields: [privyUserId], references: [id], onDelete: Cascade)
+  
+  assetId         String
+  asset           VaultAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  
+  @@unique([privyUserId, assetId])
+  @@index([privyUserId])
+  @@index([assetId])
+}
+
+// x402 Transaction Model
+model X402Transaction {
+  id              String    @id @default(cuid())
+  
+  privyUserId     String
+  user            User      @relation(fields: [privyUserId], references: [id], onDelete: Cascade)
+  
+  assetId         String
+  asset           VaultAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  // Payment details
+  amountCents     Int
+  currency        String    @default("USDC")
+  receiverAddress String
+  network         String    @default("base")
+  
+  // Transaction reference
+  txRef           String?   // Blockchain transaction hash
+  idempotencyKey  String?   // x402 idempotency token if provided
+  
+  // Status tracking
+  status          String    @default("PENDING") // PENDING, CONFIRMED, FAILED
+  
+  // Metadata
+  metadata        String?   // JSON string for additional data
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([privyUserId, assetId, idempotencyKey])
+  @@index([privyUserId])
+  @@index([assetId])
+  @@index([status])
+  @@index([txRef])
+  @@index([idempotencyKey])
 }

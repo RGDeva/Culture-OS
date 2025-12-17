@@ -16,7 +16,9 @@ import {
   Copy,
   Twitter,
   Facebook,
-  Linkedin
+  Linkedin,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -43,6 +45,7 @@ export function VaultQuickView({ userId }: VaultQuickViewProps) {
   const [loading, setLoading] = useState(true)
   const [selectedAsset, setSelectedAsset] = useState<VaultAsset | null>(null)
   const [showShareMenu, setShowShareMenu] = useState<string | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   useEffect(() => {
     fetchVaultAssets()
@@ -142,34 +145,44 @@ export function VaultQuickView({ userId }: VaultQuickViewProps) {
     <div className="border-2 dark:border-green-400/30 border-green-600/40 p-6 dark:bg-black/50 bg-white/80">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+        >
           <Folder className="h-5 w-5 dark:text-green-400 text-green-700" />
           <h2 className="text-lg font-bold font-mono dark:text-green-400 text-green-700">
             &gt; VAULT_QUICK_ACCESS
           </h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => router.push('/vault/upload')}
-            size="sm"
-            className="dark:bg-green-400 bg-green-600 dark:text-black text-white font-mono text-xs"
-          >
-            <Upload className="h-3 w-3 mr-1" />
-            UPLOAD
-          </Button>
-          <Button
-            onClick={() => router.push('/vault')}
-            variant="outline"
-            size="sm"
-            className="dark:border-green-400/50 border-green-600/50 dark:text-green-400 text-green-700 font-mono text-xs"
-          >
-            VIEW_ALL
-          </Button>
-        </div>
+          {isCollapsed ? (
+            <ChevronDown className="h-4 w-4 dark:text-green-400 text-green-700" />
+          ) : (
+            <ChevronUp className="h-4 w-4 dark:text-green-400 text-green-700" />
+          )}
+        </button>
+        {!isCollapsed && (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => router.push('/vault/upload')}
+              size="sm"
+              className="dark:bg-green-400 bg-green-600 dark:text-black text-white font-mono text-xs"
+            >
+              <Upload className="h-3 w-3 mr-1" />
+              UPLOAD
+            </Button>
+            <Button
+              onClick={() => router.push('/vault')}
+              variant="outline"
+              size="sm"
+              className="dark:border-green-400/50 border-green-600/50 dark:text-green-400 text-green-700 font-mono text-xs"
+            >
+              VIEW_ALL
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Assets Grid */}
-      {assets.length > 0 ? (
+      {!isCollapsed && assets.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {assets.map((asset) => (
             <div
@@ -276,7 +289,7 @@ export function VaultQuickView({ userId }: VaultQuickViewProps) {
             </div>
           ))}
         </div>
-      ) : (
+      ) : !isCollapsed ? (
         <div className="text-center py-12">
           <Folder className="h-12 w-12 dark:text-green-400/30 text-green-700/40 mx-auto mb-4" />
           <p className="text-sm font-mono dark:text-green-400/60 text-green-700/70 mb-4">
@@ -290,10 +303,10 @@ export function VaultQuickView({ userId }: VaultQuickViewProps) {
             UPLOAD_ASSET
           </Button>
         </div>
-      )}
+      ) : null}
 
       {/* View All Link */}
-      {assets.length > 0 && (
+      {!isCollapsed && assets.length > 0 && (
         <div className="mt-4 text-center">
           <button
             onClick={() => router.push('/vault')}

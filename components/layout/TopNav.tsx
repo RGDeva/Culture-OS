@@ -1,22 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Menu, Moon, Sun, CheckCircle } from 'lucide-react'
+import { User, Menu, Moon, Sun, CheckCircle, LogOut } from 'lucide-react'
 import { usePrivy } from '@privy-io/react-auth'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Profile } from '@/types/profile'
+import { Button } from '@heroui/button'
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, DropdownSection } from '@heroui/dropdown'
+import { Avatar } from '@heroui/avatar'
+import { Chip } from '@heroui/chip'
 
 interface TopNavProps {
   onMenuClick: () => void
 }
 
 export function TopNav({ onMenuClick }: TopNavProps) {
-  const { user, authenticated } = usePrivy()
+  const { user, authenticated, logout } = usePrivy()
   const { theme, toggleTheme } = useTheme()
   const router = useRouter()
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
 
@@ -49,147 +52,122 @@ export function TopNav({ onMenuClick }: TopNavProps) {
     <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
       {/* Profile Completion Button - Only show if profile incomplete */}
       {needsProfileSetup && profile && (
-        <Link
+        <Button
+          as={Link}
           href="/profile/setup"
-          className={`px-3 py-2 border-2 transition-all font-mono text-xs flex items-center gap-2 ${
-            theme === 'dark'
-              ? 'bg-black border-pink-500 text-pink-500 hover:bg-pink-500 hover:text-black'
-              : 'bg-white border-pink-600 text-pink-700 hover:bg-pink-100'
-          }`}
-          title="Complete your profile"
+          color="warning"
+          variant="flat"
+          size="sm"
+          startContent={<CheckCircle className="h-4 w-4" />}
+          className="font-medium"
+          radius="md"
         >
-          <CheckCircle className="h-4 w-4" />
-          <span className="hidden sm:inline">PROFILE</span>
-          <span className="font-bold">{completion}%</span>
-        </Link>
+          <span className="hidden sm:inline">Complete Profile</span>
+          <span className="font-semibold">{completion}%</span>
+        </Button>
       )}
 
       {/* Theme Toggle Button */}
-      <button
+      <Button
+        isIconOnly
+        color="default"
+        variant="flat"
         onClick={toggleTheme}
-        className={`p-3 border-2 transition-all font-mono ${
-          theme === 'dark'
-            ? 'bg-black border-green-400 text-green-400 hover:bg-green-400 hover:text-black'
-            : 'bg-white border-gray-400 text-gray-700 hover:bg-gray-100'
-        }`}
         aria-label="Toggle theme"
         title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        radius="md"
       >
         {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
+      </Button>
 
       {/* Profile Button - Only show when authenticated */}
       {authenticated && user && (
-        <div className="relative">
-          <button
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className={`p-3 border-2 transition-all font-mono ${
-              theme === 'dark'
-                ? 'bg-black border-green-400 text-green-400 hover:bg-green-400 hover:text-black'
-                : 'bg-white border-gray-400 text-gray-700 hover:bg-gray-100'
-            }`}
-            aria-label="Profile menu"
+        <Dropdown
+          backdrop="opaque"
+          classNames={{
+            base: "border border-zinc-800",
+            content: "bg-zinc-950 border-zinc-800"
+          }}
+        >
+          <DropdownTrigger>
+            <Button
+              isIconOnly
+              color="default"
+              variant="flat"
+              aria-label="Profile menu"
+              radius="md"
+            >
+              <User className="h-5 w-5" />
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu 
+            aria-label="Profile actions"
+            variant="flat"
+            disallowEmptySelection
+            selectionMode="none"
           >
-            <User className="h-5 w-5" />
-          </button>
-
-          {/* Profile Dropdown */}
-          {showProfileMenu && (
-            <>
-              {/* Backdrop */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowProfileMenu(false)}
-              />
-              
-              {/* Menu */}
-              <div className={`absolute right-0 mt-2 w-64 border-2 z-50 ${
-                theme === 'dark'
-                  ? 'bg-black border-green-400'
-                  : 'bg-white border-gray-300'
-              }`}>
-                <div className={`p-4 border-b-2 ${
-                  theme === 'dark' ? 'border-green-400/30' : 'border-gray-300'
-                }`}>
-                  <div className={`text-xs font-mono mb-1 ${
-                    theme === 'dark' ? 'text-green-400/60' : 'text-gray-500'
-                  }`}>
-                    LOGGED_IN_AS:
-                  </div>
-                  <div className={`text-sm font-mono font-bold truncate ${
-                    theme === 'dark' ? 'text-green-400' : 'text-gray-900'
-                  }`}>
-                    {(typeof user.email === 'string' ? user.email : user.email?.address) || (user.wallet?.address ? user.wallet.address.slice(0, 10) + '...' : 'User')}
-                  </div>
+            <DropdownSection showDivider>
+              <DropdownItem
+                key="user-info"
+                isReadOnly
+                className="h-14 gap-2 opacity-100"
+                textValue="User info"
+              >
+                <div className="text-xs text-zinc-500 font-medium">Signed in as</div>
+                <div className="text-sm font-semibold text-white truncate">
+                  {(typeof user.email === 'string' ? user.email : user.email?.address) || (user.wallet?.address ? user.wallet.address.slice(0, 10) + '...' : 'User')}
                 </div>
-
-                <div className="p-2">
-                  <Link
-                    href="/profile/setup"
-                    onClick={() => setShowProfileMenu(false)}
-                    className={`block px-4 py-3 text-sm font-mono transition-all ${
-                      theme === 'dark'
-                        ? 'text-green-400 hover:bg-green-400/10'
-                        : 'text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    &gt; MY_PROFILE
-                  </Link>
-                  
-                  <Link
-                    href="/"
-                    onClick={() => setShowProfileMenu(false)}
-                    className={`block px-4 py-3 text-sm font-mono transition-all ${
-                      theme === 'dark'
-                        ? 'text-green-400 hover:bg-green-400/10'
-                        : 'text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    &gt; DASHBOARD
-                  </Link>
-
-                  <Link
-                    href="/vault"
-                    onClick={() => setShowProfileMenu(false)}
-                    className={`block px-4 py-3 text-sm font-mono transition-all ${
-                      theme === 'dark'
-                        ? 'text-green-400 hover:bg-green-400/10'
-                        : 'text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    &gt; MY_VAULT
-                  </Link>
-
-                  <Link
-                    href="/earnings"
-                    onClick={() => setShowProfileMenu(false)}
-                    className={`block px-4 py-3 text-sm font-mono transition-all ${
-                      theme === 'dark'
-                        ? 'text-green-400 hover:bg-green-400/10'
-                        : 'text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    &gt; EARNINGS
-                  </Link>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+              </DropdownItem>
+            </DropdownSection>
+            <DropdownSection>
+              <DropdownItem
+                key="profile"
+                href="/profile/setup"
+                className="text-zinc-300"
+              >
+                My Profile
+              </DropdownItem>
+              <DropdownItem
+                key="dashboard"
+                href="/"
+                className="text-zinc-300"
+              >
+                Dashboard
+              </DropdownItem>
+              <DropdownItem
+                key="vault"
+                href="/vault"
+                className="text-zinc-300"
+              >
+                My Vault
+              </DropdownItem>
+            </DropdownSection>
+            <DropdownSection>
+              <DropdownItem
+                key="logout"
+                color="danger"
+                className="text-red-400"
+                startContent={<LogOut className="h-4 w-4" />}
+                onPress={() => logout()}
+              >
+                Sign Out
+              </DropdownItem>
+            </DropdownSection>
+          </DropdownMenu>
+        </Dropdown>
       )}
 
       {/* Menu Button */}
-      <button
+      <Button
+        isIconOnly
+        color="default"
+        variant="flat"
         onClick={onMenuClick}
-        className={`p-3 border-2 transition-all font-mono ${
-          theme === 'dark'
-            ? 'bg-black border-green-400 text-green-400 hover:bg-green-400 hover:text-black'
-            : 'bg-white border-gray-400 text-gray-700 hover:bg-gray-100'
-        }`}
         aria-label="Toggle navigation"
+        radius="md"
       >
         <Menu className="h-5 w-5" />
-      </button>
+      </Button>
     </div>
   )
 }

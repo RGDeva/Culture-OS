@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Music, DollarSign, TrendingUp, Wallet, ShoppingBag, Package, Eye, ExternalLink, Settings, Share2, Copy, Twitter, Facebook, Linkedin } from 'lucide-react'
+import { Music, DollarSign, TrendingUp, Wallet, ShoppingBag, Package, Eye, ExternalLink, Settings, Share2, Copy, Twitter, Facebook, Linkedin, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 
@@ -37,6 +37,7 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
   const [availableBalance, setAvailableBalance] = useState(0)
   const [pendingBalance, setPendingBalance] = useState(0)
   const [showShareMenu, setShowShareMenu] = useState<string | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   useEffect(() => {
     fetchStorefrontData()
@@ -201,24 +202,35 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
     <div className="border-2 dark:border-green-400/30 border-green-600/40 p-6 dark:bg-black/50 bg-white/80">
       {/* Header with Customize Button */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+        >
           <ShoppingBag className="h-5 w-5 dark:text-green-400 text-green-700" />
           <h2 className="text-lg font-bold font-mono dark:text-green-400 text-green-700">
             &gt; MY_STOREFRONT
           </h2>
-        </div>
-        <Button
-          onClick={() => router.push('/profile/storefront')}
-          variant="outline"
-          size="sm"
-          className="dark:border-green-400/50 border-green-600/50 dark:text-green-400 text-green-700 font-mono text-xs"
-        >
-          <Settings className="h-3 w-3 mr-1" />
-          CUSTOMIZE
-        </Button>
+          {isCollapsed ? (
+            <ChevronDown className="h-4 w-4 dark:text-green-400 text-green-700" />
+          ) : (
+            <ChevronUp className="h-4 w-4 dark:text-green-400 text-green-700" />
+          )}
+        </button>
+        {!isCollapsed && (
+          <Button
+            onClick={() => router.push('/profile/storefront')}
+            variant="outline"
+            size="sm"
+            className="dark:border-green-400/50 border-green-600/50 dark:text-green-400 text-green-700 font-mono text-xs"
+          >
+            <Settings className="h-3 w-3 mr-1" />
+            CUSTOMIZE
+          </Button>
+        )}
       </div>
 
       {/* Platform Sales & Earnings Grid */}
+      {!isCollapsed && (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {/* Total Sales */}
         <div className="p-4 border dark:border-green-400/30 border-green-600/30 dark:bg-green-400/5 bg-green-600/5">
@@ -260,9 +272,10 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Platform Sales Breakdown */}
-      {platformSales.length > 0 && (
+      {!isCollapsed && platformSales.length > 0 && (
         <div className="mb-6 p-4 border dark:border-green-400/30 border-green-600/30 dark:bg-green-400/5 bg-green-600/5">
           <div className="text-xs font-mono font-bold dark:text-green-400 text-green-700 mb-3">
             PLATFORM_SALES
@@ -284,6 +297,7 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
       )}
 
       {/* Listed Services/Beats */}
+      {!isCollapsed && (
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="text-xs font-mono font-bold dark:text-green-400 text-green-700">
@@ -407,8 +421,10 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
           </div>
         )}
       </div>
+      )}
 
       {/* Quick Actions */}
+      {!isCollapsed && (
       <div className="grid grid-cols-3 gap-3">
         <Button
           onClick={() => router.push('/marketplace')}
@@ -435,6 +451,7 @@ export function EnhancedStorefront({ userId }: EnhancedStorefrontProps) {
           VIEW_STORE
         </Button>
       </div>
+      )}
     </div>
   )
 }

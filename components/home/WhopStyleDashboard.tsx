@@ -19,12 +19,19 @@ import {
   Bell,
   Search,
   Menu,
-  X
+  X,
+  Target,
+  Zap
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Profile } from '@/types/profile'
 import { VaultQuickView } from '@/components/dashboard/VaultQuickView'
 import { EnhancedStorefront } from '@/components/dashboard/EnhancedStorefront'
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
+import { QuickStatsWidget } from '@/components/dashboard/QuickStatsWidget'
+import { EarningsSummary } from '@/components/dashboard/EarningsSummary'
+import { WelcomeBanner } from '@/components/dashboard/WelcomeBanner'
+import { NotificationBell } from '@/components/ui/NotificationBell'
 
 interface WhopStyleDashboardProps {
   userId: string
@@ -36,6 +43,8 @@ interface SnapshotMetrics {
   activeListings: number
   openCollabs: number
   earningsLast30Days: number
+  activeBounties?: number
+  bountyEarnings?: number
 }
 
 export function WhopStyleDashboard({ userId, profile }: WhopStyleDashboardProps) {
@@ -66,6 +75,17 @@ export function WhopStyleDashboard({ userId, profile }: WhopStyleDashboardProps)
           earningsLast30Days: data.metrics.earningsThisMonth || 0,
         })
       }
+
+      // Load bounty metrics
+      const bountiesRes = await fetch(`/api/bounties/me?userId=${userId}`)
+      if (bountiesRes.ok) {
+        const data = await bountiesRes.json()
+        setMetrics(prev => ({
+          ...prev,
+          activeBounties: data.summary?.activeCampaigns || 0,
+          bountyEarnings: (data.summary?.earnings?.availableCents || 0) / 100,
+        }))
+      }
     } catch (error) {
       console.error('[WHOP_DASHBOARD] Error loading data:', error)
     } finally {
@@ -80,9 +100,8 @@ export function WhopStyleDashboard({ userId, profile }: WhopStyleDashboardProps)
     { icon: Home, label: 'Dashboard', path: '/', active: true },
     { icon: Folder, label: 'Vault', path: '/vault', active: false },
     { icon: ShoppingBag, label: 'Marketplace', path: '/marketplace', active: false },
+    { icon: Zap, label: 'Earn', path: '/earn', active: false },
     { icon: Users, label: 'Network', path: '/network', active: false },
-    { icon: MessageSquarePlus, label: 'Bounties', path: '/bounties', active: false },
-    { icon: TrendingUp, label: 'Earnings', path: '/earnings', active: false },
     { icon: UserCircle, label: 'Profile', path: `/profile/view?userId=${userId}`, active: false },
     { icon: Settings, label: 'Settings', path: '/profile/setup', active: false },
   ]
@@ -179,21 +198,24 @@ export function WhopStyleDashboard({ userId, profile }: WhopStyleDashboardProps)
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button className="relative dark:text-green-400 text-green-700 hover:opacity-70">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 dark:bg-green-400 bg-green-600 rounded-full"></span>
-            </button>
-            <button className="dark:text-green-400 text-green-700 hover:opacity-70">
-              <Search className="h-5 w-5" />
-            </button>
+            <NotificationBell userId={userId} />
           </div>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
+            {/* Welcome Banner for new users */}
+            {profileCompletion < 100 && (
+              <WelcomeBanner
+                userId={userId}
+                displayName={displayName}
+                profileCompletion={profileCompletion}
+              />
+            )}
+
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {/* Open Projects */}
               <div className="border-2 dark:border-green-400/30 border-green-600/40 p-4 dark:bg-black/50 bg-white/80">
                 <div className="flex items-center gap-2 mb-2">
@@ -202,6 +224,17 @@ export function WhopStyleDashboard({ userId, profile }: WhopStyleDashboardProps)
                 </div>
                 <div className="text-3xl font-bold font-mono dark:text-green-400 text-green-700">
                   {metrics.assetsInVault}
+                </div>
+              </div>
+
+              {/* Active Bounties */}
+              <div className="border-2 dark:border-green-400/30 border-green-600/40 p-4 dark:bg-black/50 bg-white/80">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="h-4 w-4 dark:text-green-400/70 text-green-700/70" />
+                  <span className="text-xs font-mono dark:text-green-400/70 text-green-700/70">BOUNTIES</span>
+                </div>
+                <div className="text-3xl font-bold font-mono dark:text-green-400 text-green-700">
+                  {metrics.activeBounties || 0}
                 </div>
               </div>
 
@@ -239,18 +272,27 @@ export function WhopStyleDashboard({ userId, profile }: WhopStyleDashboardProps)
               </div>
             </div>
 
+            {/* Earnings Summary */}
+            <EarningsSummary userId={userId} />
+
+            {/* Quick Stats Widget */}
+            <QuickStatsWidget userId={userId} />
+
             {/* Vault Quick Access */}
             <VaultQuickView userId={userId} />
 
             {/* Enhanced Storefront */}
             <EnhancedStorefront userId={userId} />
 
+            {/* Activity Feed */}
+            <ActivityFeed userId={userId} />
+
             {/* Quick Actions Grid */}
             <div className="border-2 dark:border-green-400/30 border-green-600/40 p-6 dark:bg-black/50 bg-white/80">
               <h3 className="text-lg font-bold font-mono dark:text-green-400 text-green-700 mb-4">
                 &gt; QUICK_ACTIONS
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <button
                   onClick={() => router.push('/vault')}
                   className="p-4 border-2 dark:border-green-400/30 border-green-600/40 hover:dark:border-green-400 hover:border-green-600 transition-all text-left"
@@ -261,6 +303,19 @@ export function WhopStyleDashboard({ userId, profile }: WhopStyleDashboardProps)
                   </div>
                   <div className="text-xs font-mono dark:text-green-400/60 text-green-700/70">
                     Upload beats, stems, or projects
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => router.push('/bounties')}
+                  className="p-4 border-2 dark:border-green-400 border-green-600 dark:bg-green-400/10 bg-green-600/10 hover:dark:bg-green-400/20 hover:bg-green-600/20 transition-all text-left"
+                >
+                  <Target className="h-5 w-5 dark:text-green-400 text-green-700 mb-2" />
+                  <div className="text-sm font-mono dark:text-green-400 text-green-700 font-bold mb-1">
+                    CREATE_BOUNTY
+                  </div>
+                  <div className="text-xs font-mono dark:text-green-400/60 text-green-700/70">
+                    Incentivize fans to promote
                   </div>
                 </button>
 

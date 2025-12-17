@@ -3,7 +3,7 @@
  * Connects with Dreamster, TakeRecord, and WaveWarZ
  */
 
-import { prisma } from '@/lib/prisma'
+import { prismaSafe as prisma } from '@/lib/prisma-safe'
 
 // ============================================================================
 // DREAMSTER INTEGRATION

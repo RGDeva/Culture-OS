@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss"
+import { heroui } from "@heroui/theme"
 
 const config: Config = {
   darkMode: ["class"],
@@ -7,6 +8,7 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -15,43 +17,34 @@ const config: Config = {
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "#000000",
-        foreground: "#00ff41",
+        foreground: "#ffffff",
         primary: {
-          DEFAULT: "#00ff41",
-          foreground: "#000000",
+          DEFAULT: "#3b82f6",
+          foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "#1a1a1a",
-          foreground: "#00ff41",
+          DEFAULT: "#18181b",
+          foreground: "#fafafa",
         },
         destructive: {
-          DEFAULT: "#ff0000",
+          DEFAULT: "#ef4444",
           foreground: "#ffffff",
         },
         muted: {
-          DEFAULT: "#1a1a1a",
-          foreground: "#00ff41",
+          DEFAULT: "#27272a",
+          foreground: "#a1a1aa",
         },
         accent: {
-          DEFAULT: "#00ff41",
-          foreground: "#000000",
+          DEFAULT: "#3b82f6",
+          foreground: "#ffffff",
         },
         popover: {
-          DEFAULT: "#000000",
-          foreground: "#00ff41",
+          DEFAULT: "#09090b",
+          foreground: "#fafafa",
         },
         card: {
-          DEFAULT: "#000000",
-          foreground: "#00ff41",
-        },
-        green: {
-          400: "#00ff41",
-          300: "#33ff66",
-          500: "#00cc33",
-        },
-        red: {
-          400: "#ff4444",
-          500: "#ff0000",
+          DEFAULT: "#09090b",
+          foreground: "#fafafa",
         },
       },
       fontFamily: {
@@ -60,9 +53,9 @@ const config: Config = {
         serif: ["var(--font-serif)"],
       },
       borderRadius: {
-        lg: "0px",
-        md: "0px",
-        sm: "0px",
+        lg: "12px",
+        md: "8px",
+        sm: "6px",
         none: "0px",
       },
       animation: {
@@ -76,7 +69,43 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"), 
+    heroui({
+      themes: {
+        dark: {
+          colors: {
+            background: "#000000",
+            foreground: "#ffffff",
+            primary: {
+              DEFAULT: "#3b82f6",
+              foreground: "#ffffff",
+            },
+            secondary: {
+              DEFAULT: "#18181b",
+              foreground: "#fafafa",
+            },
+            success: {
+              DEFAULT: "#10b981",
+              foreground: "#ffffff",
+            },
+            warning: {
+              DEFAULT: "#f59e0b",
+              foreground: "#000000",
+            },
+            danger: {
+              DEFAULT: "#ef4444",
+              foreground: "#ffffff",
+            },
+            default: {
+              DEFAULT: "#27272a",
+              foreground: "#fafafa",
+            },
+          },
+        },
+      },
+    })
+  ],
 }
 
 export default config
